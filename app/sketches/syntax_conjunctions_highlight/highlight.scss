@@ -1,0 +1,50 @@
+#text_container
+{
+    height: 100%;
+    overflow: scroll;
+
+    span::highlight(playing)
+    {
+        background-color: #dadfe0;
+    }
+
+    span::highlight(additive)
+    {
+        color: #67a70c;
+    }
+
+    span::highlight(adversative)
+    {
+        color: #e7609e;
+    }
+
+    span::highlight(causal)
+    {
+        color: #5c9291;
+    }
+
+    span::highlight(temporal)
+    {
+        color: #deb068;
+    }
+
+    span::highlight(conditional)
+    {
+        color: #ffb02a;
+    }
+
+    span::highlight(concessive)
+    {
+        color: #cf747b;
+    }
+
+    span::highlight(comparative)
+    {
+        color: #d57c6b;
+    }
+
+    span::highlight(summative)
+    {
+        color: #9a5fa9;
+    }
+}
