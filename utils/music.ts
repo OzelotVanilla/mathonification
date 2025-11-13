@@ -1,7 +1,18 @@
 export class MusicContext
 {
-    /** 0 means C, until 11, 11 means B. */
+    /**
+     * 0 means C, until 11, 11 means B.
+     */
     current_major: number = 0
+
+    get current_major_midi() { return this.base_note + this.current_major }
+
+    /**
+     * Pivot of the calculation. In midi number. Default to C4.
+     * 
+     * Used together with `current_major` to get the midi number of starting number of that major.
+     */
+    base_note: number = 60
 
     setMajorUp(value: number)
     {
@@ -46,4 +57,9 @@ export enum MusicScale
     natural_minor = "natural_minor",
     harmonic_minor = "harmonic_minor",
     melodic_minor = "melodic_minor"
+}
+
+export function convertMIDINumberToFrequency(midi_num: number)
+{
+    return 440 * Math.pow(2, (midi_num - 69) / 12)
 }
