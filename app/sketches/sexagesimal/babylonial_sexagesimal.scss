@@ -1,0 +1,23 @@
+.BabylonianSexagesimalNumber
+{
+    font-family: "NotoSansCuneiform-Regular";
+    font-size: 1em;
+    display: inline-flex;
+    flex-direction: row;
+    justify-content: center;
+    gap: 0.5em;
+}
+
+.BabylonianSexagesimalDigit
+{
+    display: inline-flex;
+    flex-direction: row;
+    width: 2em;
+    justify-content: center;
+
+    span
+    {
+        flex: 1;
+        text-align: center;
+    }
+}

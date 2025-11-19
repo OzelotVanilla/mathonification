@@ -1,0 +1,92 @@
+$MovingDecsPanel_z_index: 10;
+$CenterDecSexaNumber_z_index: 20;
+
+#sexagesimal
+{
+    width: 100%;
+    height: 100%;
+
+    position: absolute;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.CenterDecSexaNumber
+{
+    position: relative;
+    z-index: $CenterDecSexaNumber_z_index;
+
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+
+    padding-bottom: 4vh;
+
+    > .OriginDecNumber
+    {
+        font-size: 1em;
+    }
+
+    > .BabylonianSexagesimalNumber
+    {
+        font-size: 1.4em;
+    }
+
+    > .DecRepr
+    {
+        font-size: 1.2em;
+    }
+}
+
+.MovingDecsPanel
+{
+    position: fixed;
+    z-index: $MovingDecsPanel_z_index;
+    top: 0;
+    left: 0;
+
+    width: 100%;
+    height: 100%;
+
+    > .MovingDec
+    {
+        position: absolute;
+
+        // Never set animation here because it is changed by script.
+
+        > .InnerText
+        {
+            user-select: none;
+
+            transition-property: transform;
+            transition-duration: 0.25s;
+            transition-timing-function: ease-in-out;
+
+            &:hover
+            {
+                transform: scale(1.2);
+            }
+        }
+    }
+}
+
+.PageCover
+{
+    width: 100%;
+    height: 100%;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    .Text
+    {
+        text-align: center;
+        font-size: 1.4em;
+        margin-bottom: 4vh;
+        user-select: none;
+    }
+}

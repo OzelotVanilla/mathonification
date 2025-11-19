@@ -66,3 +66,35 @@ export function mapLinearToExp(
 
     return final_value;
 }
+
+/**
+ * Convert the number into a array, representing the digit from most significant to least.
+ */
+export function convertDecToSexaDigits(number: number)
+{
+    let digits: number[] = []
+    let current_digit: number = 0
+
+    do
+    {
+        current_digit = number % 60
+        digits.push(current_digit)
+        number = Math.floor(number / 60)
+    }
+    while (number > 0)
+
+    return digits.toReversed()
+}
+
+export function generateRandomNumberOfRange(min: number, max: number)
+{
+    return Math.random() * (max - min) + min
+}
+
+/**
+ * Return `true` or `false` at 50% possibility.
+ */
+export function coin()
+{
+    return Math.random() < 0.5
+}
