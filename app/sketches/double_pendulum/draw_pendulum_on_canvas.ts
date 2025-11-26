@@ -1,3 +1,4 @@
+import { clearCanvas } from "@/utils/canvas"
 import { MusicalDoublePendulum } from "./MusicalDoublePendulum"
 
 export function drawMusicDoublePendulumOnCanvas(pendulum: MusicalDoublePendulum, canvas_context: CanvasRenderingContext2D)
@@ -47,9 +48,4 @@ export function drawMusicDoublePendulumOnCanvas(pendulum: MusicalDoublePendulum,
     //     c.arc(x + middle_point_x, y + middle_point_y, arc_radius, 0, 2 * Math.PI)
     //     c.fill()
     // }
-}
-
-function clearCanvas(canvas_context: CanvasRenderingContext2D)
-{
-    canvas_context.clearRect(0, 0, canvas_context.canvas.width, canvas_context.canvas.height)
 }

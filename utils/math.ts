@@ -17,6 +17,7 @@ export function normaliseRadian(radian_degree: number)
 /**
  * Maps a linear input value from the range [a, b] to a value 
  * in the exponential range [exp_min, exp_max].
+ * 
  * @param x The linear input value (must be between a and b).
  * @param a The start of the linear input range.
  * @param b The end of the linear input range.
@@ -65,6 +66,98 @@ export function mapLinearToExp(
     const final_value = exp_min + final_normalized * exp_range_span;
 
     return final_value;
+}
+
+/**
+ * Maps a linear input value from the range [a, b] to a corresponding 
+ * linear value in the target range [c, d].
+ * 
+ * @param x The linear input value (ideally between a and b).
+ * @param a The start of the linear input range (Source Min).
+ * @param b The end of the linear input range (Source Max).
+ * @param c The start of the linear output range (Target Min).
+ * @param d The end of the linear output range (Target Max).
+ * @returns The linearly mapped value.
+ * 
+ * @author Gemini
+ */
+export function mapLinearToLinear(
+    x: number,
+    a: number,
+    b: number,
+    c: number,
+    d: number
+): number
+{
+    // The core formula for linear mapping is:
+    // Output = TargetMin + (TargetSpan) * (NormalizedInput)
+
+    // 1. Calculate the Normalized Input (P):
+    // This scales x from [a, b] to a dimensionless proportion P in the [0, 1] range.
+    // P = (x - a) / (b - a)
+    const normalized_input_proportion = (x - a) / (b - a);
+
+    // 2. Calculate the Target Span (ΔT):
+    // The total size of the output range.
+    const target_span = d - c;
+
+    // 3. Apply the proportion and shift to the target range:
+    // Output = c + (P * target_span)
+    const final_value = c + (normalized_input_proportion * target_span);
+
+    return final_value;
+}
+
+/**
+ * Calculates the Greatest Common Divisor (GCD) of two non-negative integers 
+ *  using the Euclidean Algorithm.
+ * 
+ * @param a The first integer.
+ * @param b The second integer.
+ * @returns The GCD of a and b.
+ * 
+ * @author Gemini
+ */
+export function gcd(a: number, b: number): number
+{
+    // Ensure inputs are non-negative and handle the base case.
+    a = Math.abs(a);
+    b = Math.abs(b);
+
+    // The Euclidean Algorithm: gcd(a, b) = gcd(b, a % b)
+    while (b)
+    {
+        [a, b] = [b, a % b];
+    }
+    return a;
+}
+
+/**
+ * Calculates the Least Common Multiple (LCM) of two non-negative integers 
+ *  by using the formula: LCM(a, b) = |a * b| / GCD(a, b).
+ * 
+ * @param a The first integer.
+ * @param b The second integer.
+ * @returns The LCM of a and b.
+ * 
+ * @author Gemini
+ */
+export function lcm(a: number, b: number): number
+{
+    // Handle the case where either a or b is zero.
+    if (a === 0 || b === 0)
+    {
+        return 0;
+    }
+
+    // Use the GCD function to calculate the LCM
+    // Note: The Math.abs ensures a positive result.
+    return Math.abs(a * b) / gcd(a, b);
+}
+
+export function logByN(base_n: number, x: number)
+{
+    return Math.log(x) / Math.log(base_n)
 }
 
 /**

@@ -6,7 +6,8 @@
         "react": "^19.2.0",
         "react-dom": "^19.2.0",
         "sass": "^1.93.3",
-        "tone": "^15.1.22"
+        "tone": "^15.1.22",
+        "zustand": "^5.0.8"
     },
     "devDependencies": {
         "@types/jest": "^30.0.0",

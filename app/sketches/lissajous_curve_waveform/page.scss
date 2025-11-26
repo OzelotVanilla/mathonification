@@ -1,0 +1,45 @@
+#lissajous_curve
+{
+    width: 100%;
+    height: 100%;
+
+    display: flex;
+    flex-direction: column;
+
+    #curve_display
+    {
+        width: min(80vh, 90vw);
+        height: min(80vh, 90vw);
+        margin: auto;
+
+        #curve_display_canvas
+        {
+            width: 100%;
+            height: 100%;
+        }
+    }
+
+    #value_control
+    {
+        display: flex;
+        flex-direction: row;
+    }
+}
+
+.PageCover
+{
+    width: 100%;
+    height: 100%;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    .Text
+    {
+        text-align: center;
+        font-size: 4vw;
+        margin-bottom: 4vh;
+        user-select: none;
+    }
+}
