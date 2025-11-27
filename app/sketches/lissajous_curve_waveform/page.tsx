@@ -25,9 +25,11 @@ export default function LissajousPage()
     {
         setWhetherStarted(true)
         lissajous_player.current = new LissajousSoundPlayer(lissajous_curve.current)
-        lissajous_player.current.resume()
+        lissajous_player.current.resume().then(() =>
+        {
+            lissajous_player.current!.start()
+        })
         lissajous_curve.current.updateMouseLocation(event.clientX, event.clientY)
-        lissajous_player.current.start()
     }
 
     useEffect(() =>

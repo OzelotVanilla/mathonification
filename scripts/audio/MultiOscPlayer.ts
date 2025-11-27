@@ -22,7 +22,7 @@ export abstract class MultiOscPlayer
 
     public resume()
     {
-        this.audio_context.resume()
+        return this.audio_context.resume()
     }
 
     public suspend()
