@@ -62,7 +62,7 @@ export class LissajousCurve
             setA: (new_a: number) => set(() => ({ a: new_a })),
             setB: (new_b: number) => set(() => ({ b: new_b })),
             setPhiChangingSpeed: (new_phi_changing_speed: number) => set(() => ({ phi_changing_speed: new_phi_changing_speed })),
-            setPhi: (new_phi: number) => set(() => ({ phi: normaliseRadian(new_phi) + Math.PI }))
+            setPhi: (new_phi: number) => set(() => ({ phi: normaliseRadian(new_phi) }))
         }))
     }
 
