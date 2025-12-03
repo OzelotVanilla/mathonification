@@ -1,0 +1,81 @@
+#sketch
+{
+    width: 100%;
+    height: 100%;
+
+    .Background
+    {
+        width: 100%;
+        height: 100%;
+        position: fixed;
+        z-index: -1;
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        align-items: center;
+
+        .Text
+        {
+            color: #f3f3f3;
+            font-size: clamp(80px, 8vmin, 200px);
+            font-weight: 1000;
+        }
+    }
+}
+
+#sketch_gallery
+{
+    max-width: 100%;
+    padding: min(20px, 2vw);
+
+    $grid_frame_width: minmax(250px, 1fr);
+
+    display: grid;
+    grid-template-columns: repeat(auto-fill, $grid_frame_width);
+    row-gap: min(40px, 4vh);
+    column-gap: min(20px, 2vw);
+    justify-items: center;
+
+    .SketchCard
+    {
+        width: 100%; // of the grid frame.
+        max-width: 300px;
+        max-height: 275px;
+
+        // to clear the underline of `<Link>`.
+        a
+        {
+            text-decoration: none;
+        }
+
+        // Is inside the `<Link>`.
+        .ant-card
+        {
+            width: 100%;
+            height: 100%;
+            background-color: #ffffff30;
+            backdrop-filter: blur(2px);
+
+            .ant-card-cover
+            {
+                margin: 0px;
+                height: 50%;
+
+                .ImageCover
+                {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: contain;
+                    object-position: center;
+                    mix-blend-mode: multiply;
+                }
+            }
+
+            .ant-card-body
+            {
+                /* padding: top-and-bottom left-and-right */
+                padding: min(15px, 2vh) min(10px, 2vw);
+            }
+        }
+    }
+}
