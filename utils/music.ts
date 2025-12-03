@@ -1,3 +1,5 @@
+import { just_intonation_ratio_array } from "./constants"
+
 export class MusicContext
 {
     /**
@@ -62,4 +64,24 @@ export enum MusicScale
 export function convertMIDINumberToFrequency(midi_num: number)
 {
     return 440 * Math.pow(2, (midi_num - 69) / 12)
+}
+
+/**
+ * 
+ * @param n_th_bigger(range: 0..) How many white keys is above the base C key.
+ * @param c_freq The frequency to be used for base C key.
+ */
+export function getJustIntonationFrequencyFromC(n_th_bigger: number, c_freq: number = 440)
+{
+    return n_th_bigger > 7
+        ? c_freq * Math.floor(n_th_bigger / 7) * 2 * just_intonation_ratio_array[n_th_bigger % 7]
+        : c_freq * just_intonation_ratio_array[n_th_bigger]
+}
+
+/**
+ * @returns Duration in seconds.
+ */
+export function convertBeatToDuration(n_beat: number, bpm: number)
+{
+    return (60 / bpm) * n_beat
 }

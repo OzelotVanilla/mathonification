@@ -55,7 +55,7 @@ export class LissajousCurve
         this.viewport_y_max = isClientEnvironment() ? window.innerHeight : 0
 
         this.useLissajousCurveParamStore = createZustand<LissajousState & LissajousAction>((set) => ({
-            a: 1,
+            a: 4,
             b: 4,
             phi_changing_speed: Math.PI / 40,
             phi: 0.0,
@@ -68,7 +68,7 @@ export class LissajousCurve
 
     last_call_timestamp__updateCurveParam: number = 0
     /**
-     * Update the curve's parameter (phi) according to time elapsed since last call.
+     * Update the curve's parameter according to time elapsed since last call.
      * Using `performance.now` for timestamp.
      * 
      * Will clamp to 50 ms if the interval is too big.
@@ -84,4 +84,53 @@ export class LissajousCurve
 
         this.need_redraw = true
     }
+
+    /**
+     * `x` and `y` should be `clientX` and `clientY`.
+     * 
+     * @returns Calculated new `a` and `b`.
+     */
+    updateMouseLocation(x: number, y: number)
+    {
+        const param_store = this.useLissajousCurveParamStore.getState()
+
+        // Mapping the mouse [0, width] to [20 ** -1, 20 ** 1].
+        // const a_b_ratio = Math.pow(20, mapLinearToLinear(x, 0, this.viewport_x_max, -1, 1))
+        // param_store.setABRatio(a_b_ratio)
+
+        // const phi_changing_speed = Math.PI * mapLinearToLinear(y, 0, this.viewport_y_max, 0.5, 2)
+        // param_store.setPhiChangingSpeed(phi_changing_speed)
+
+        // Mapping the mouse `x` from [0, width] to [1, 20].
+        const old_a = param_store.a
+        const new_a = Math.floor(mapLinearToLinear(x, 0, this.viewport_x_max, 1, 20))
+
+        // Mapping the mouse `y` from [0, height] to [1, 20].
+        const old_b = param_store.b
+        const new_b = Math.floor(mapLinearToLinear(y, 0, this.viewport_y_max, 1, 20))
+
+        if (old_a != new_a || old_b != new_b)
+        {
+            param_store.setA(new_a)
+            param_store.setB(new_b)
+            this.need_redraw = true
+        }
+
+        return [new_a, new_b]
+    }
+}
+
+/**
+ * Use the `a` and `b` param to calculate the simplicity of the curve.
+ * 
+ * Lower the result, simpler the graph.
+ */
+export function calculateSimplicity(a: number, b: number)
+{
+    const common_divisor = gcd(a, b)
+
+    return Math.min(
+        5,
+        Math.round(Math.log2((a + b) / common_divisor))
+    )
 }

@@ -185,9 +185,57 @@ export function generateRandomNumberOfRange(min: number, max: number)
 }
 
 /**
+ * Generates a skewed random number, favoring the minimum (Min-Side).
+ * Authored by Gemini.
+ *
+ * The bias strength is adjusted by the 'exponent' parameter (must be > 1).
+ *
+ * @param min - The minimum value of the range (e.g., 1).
+ * @param max - The maximum value of the range (e.g., 16).
+ * @param exponent - The strength of the skew (e.g., 3.0 for strong skew towards min).
+ * @returns An integer value in the range [min, max], with values closer to 'min' being more likely.
+ * 
+ * @author Gemini
+ */
+export function generateRandomNumberSkewedMin(min: number, max: number, exponent: number): number
+{
+    // 1. Get a standard uniform random number (0.0 to 1.0)
+    const uniform = Math.random();
+
+    // 2. Apply the power law to skew the value towards 0.
+    // Since exponent > 1, the result R will be closer to 0 more often.
+    const R = Math.pow(uniform, exponent);
+
+    // 3. Linearly map the skewed random number R (0.0 to 1.0) to the [min, max] range.
+    const mappedValue = min + R * (max - min);
+
+    // 4. Round to the nearest integer.
+    return Math.round(mappedValue);
+}
+
+/**
  * Return `true` or `false` at 50% possibility.
  */
 export function coin()
 {
     return Math.random() < 0.5
+}
+
+export function getWeightedChoice<EleType>(from_array: ArrayLike<EleType>, weight_array: ArrayLike<number>)
+{
+    let sum = 0
+    for (let i = 0; i < weight_array.length; i++) { sum += weight_array[i] }
+
+    const random_number = generateRandomNumberOfRange(0, sum)
+    let index = 0
+    let acc = 0
+    do
+    {
+        acc += weight_array[index]
+        index++
+    }
+    while (acc < random_number)
+
+    // Index will be greater than the actual range being tested.
+    return from_array[index - 1]
 }

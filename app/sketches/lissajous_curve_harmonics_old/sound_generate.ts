@@ -1,6 +1,6 @@
 import { DroneSoundPlayer } from "@/scripts/audio/DroneSoundPlayer";
-import { lcm } from "@/utils/math";
-import { LissajousAction, LissajousCurve, LissajousState } from "../lissajous_curve_harmonics/lissajous_curve";
+import { gcd } from "@/utils/math";
+import { LissajousAction, LissajousCurve, LissajousState } from "./lissajous_curve";
 
 const length_of_waveform_array = 50
 
@@ -65,19 +65,56 @@ export class LissajousSoundPlayer extends DroneSoundPlayer
 
     createPeriodicWaveFrom(a: number, b: number)
     {
-        const least_common_muler = lcm(a, b)
-        const len = least_common_muler + 1
-        let array_a = new Float32Array(len).fill(0)
-        let array_b = new Float32Array(len).fill(0)
+        const len = Math.max(a, b)
+        /** Starting from 1. */
 
-        for (let i = 0; i < least_common_muler; i++)
+        let array_a = new Float32Array(len + 1).fill(0)
+        let array_b = new Float32Array(len + 1).fill(0)
+
+        function findAllFactors(number_less_than_twenty: number)
         {
-            const phase = Math.PI / 10 * i
-            array_a[i] = (Math.sin(a * phase) + 1) / 2
-            array_b[i] = (Math.sin(b * phase) + 1) / 2
+            let result = []
+
+            // const primes = [2, 3, 5, 7, 11, 13, 17, 19]
+            // for (const d of primes)
+            // {
+            //     if (number_less_than_twenty % d == 0) { result.push(d) }
+            // }
+
+            for (let i = 0; i < 20; i++)
+            {
+                if (number_less_than_twenty % i == 0) { result.push(i) }
+            }
+
+            return result
         }
 
-        console.log(array_a, array_b)
+        array_a[0] = 1
+        array_b[0] = 1
+
+        for (const f of findAllFactors(a))
+        {
+            array_a[f] = 1
+        }
+        for (const f of findAllFactors(b))
+        {
+            array_b[f] = 1
+        }
+
+        array_a[a] = 1
+        array_b[b] = 1
+
+        // If using prime number only.
+        // const prime_position = [0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0]
+        // for (let i = 0; i < a; i++)
+        // {
+        //     array_a[i] = prime_position[i] * (i / a)
+        // }
+
+        // for (let i = 0; i < b; i++)
+        // {
+        //     array_b[i] = prime_position[i] * (i / b)
+        // }
 
         return this.audio_context.createPeriodicWave(array_a, array_b, { disableNormalization: false })
     }

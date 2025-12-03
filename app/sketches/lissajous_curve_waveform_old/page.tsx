@@ -3,8 +3,8 @@
 import { RefObject, useEffect, useRef, useState } from "react"
 
 import "./page.scss"
-import { LissajousCurve } from "../lissajous_curve_harmonics/lissajous_curve"
-import { drawLissajousCurveOnCanvas } from "../lissajous_curve_harmonics/draw_lissajous_curve"
+import { LissajousCurve } from "../lissajous_curve_harmonics_old/lissajous_curve"
+import { drawLissajousCurveOnCanvas } from "../lissajous_curve_harmonics_old/draw_lissajous_curve"
 import { LissajousSoundPlayer } from "./sound_generate"
 
 export default function LissajousPage()

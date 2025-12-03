@@ -3,7 +3,7 @@
  */;
 
 import { clearCanvas } from "@/utils/canvas";
-import { LissajousCurve } from "./lissajous_curve";
+import { calculateSimplicity, LissajousCurve } from "./lissajous_curve";
 import { gcd, lcm } from "@/utils/math";
 
 /**
@@ -22,6 +22,15 @@ const line_width = 2
  */
 const resolution = 0.01
 
+const colour_from_simplicity = [
+    "#00552e",// 0
+    "#5f984d",// 1
+    "#c3d825",// 2
+    "#f7c114",// 3
+    "#dd7a56",// 4
+    "#eb6101",// 5
+] as const
+
 export function drawLissajousCurveOnCanvas(lissajous_canvas: HTMLCanvasElement, lissajous_curve: LissajousCurve)
 {
     if (lissajous_canvas == null || lissajous_curve == null) { return }
@@ -37,8 +46,9 @@ export function drawLissajousCurveOnCanvas(lissajous_canvas: HTMLCanvasElement, 
     const delta = resolution / Math.max(a, b, 1)
     const screen_center_x_offset = c.canvas.clientWidth / 2
     const screen_center_y_offset = c.canvas.clientHeight / 2
+    const simplicity = calculateSimplicity(a, b)
 
-    c.strokeStyle = "black"
+    c.strokeStyle = colour_from_simplicity[simplicity] ?? "#e45ea2"
     c.lineWidth = line_width
     c.beginPath()
 

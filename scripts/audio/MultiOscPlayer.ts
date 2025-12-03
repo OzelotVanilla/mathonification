@@ -32,7 +32,9 @@ export abstract class MultiOscPlayer
 
     public stop()
     {
-        this.osc_gain_dict.keys().forEach(k => this.removeEntry(k))
+        this.destroyEntry()
+        this.master_gain.disconnect()
+        this.audio_context.close()
     }
 
     /**
@@ -61,12 +63,28 @@ export abstract class MultiOscPlayer
         this.master_gain.gain.value = 1 / this.osc_gain_dict.size
     }
 
+    /**
+     * Remove the assigned entry and auto-adjust the master gain's value.
+     */
     protected removeEntry(id: string)
     {
         const entry = this.osc_gain_dict.get(id)!
         Object.values(entry).forEach(n => n.disconnect())
         this.osc_gain_dict.delete(id)
         this.master_gain.gain.value = 1 / this.osc_gain_dict.size
+    }
+
+    /**
+     * Delete and release all created resource.
+     */
+    protected destroyEntry()
+    {
+        for (const entry of this.osc_gain_dict.values())
+        {
+            for (const n of Object.values(entry)) { n.disconnect() }
+        }
+
+        this.osc_gain_dict.clear()
     }
 }
 

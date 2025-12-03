@@ -61,3 +61,14 @@ export const chord_to_offset_dict: Map<string, number[]> = new Map([
     ["a_b_minor", [8, 11, 3]],
     ["b_b_minor", [10, 1, 5]]
 ]) 
+
+export const just_intonation_ratio_array = [
+    1,
+    9 / 8, // 9 / 8,
+    5 / 4, // 10 / 9,
+    4 / 3, // 16 / 15,
+    3 / 2, // 9 / 8,
+    5 / 3, // 10 / 9,
+    15 / 8, // 9 / 8,
+    2, // 16 / 15
+]

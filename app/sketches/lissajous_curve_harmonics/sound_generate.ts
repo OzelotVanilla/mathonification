@@ -1,23 +1,27 @@
 import { DroneSoundPlayer } from "@/scripts/audio/DroneSoundPlayer";
-import { gcd } from "@/utils/math";
 import { LissajousAction, LissajousCurve, LissajousState } from "./lissajous_curve";
+import { convertBeatToDuration, convertMIDINumberToFrequency, getJustIntonationFrequencyFromC, MusicContext } from "@/utils/music";
+import { generateRandomNumberOfRange, generateRandomNumberSkewedMin, getWeightedChoice } from "@/utils/math";
 
-const length_of_waveform_array = 50
 
 /**
- * Has only one drone to play.
+ * Has 2 drones to play.
  * 
  * Manage the update of lissajous curve.
  */
 export class LissajousSoundPlayer extends DroneSoundPlayer
 {
-    osc__ref: OscillatorNode
+    osc_1__ref: OscillatorNode
 
-    gain__ref: GainNode
+    gain_1__ref: GainNode
+
+    osc_2__ref: OscillatorNode
+
+    gain_2__ref: GainNode
 
     lissajous_curve: LissajousCurve
 
-    wave_form_dict: Map<`${number},${number}`, PeriodicWave>
+    music_context: MusicContext
 
     unsubscribeLissajousUpdate: () => any
 
@@ -25,98 +29,34 @@ export class LissajousSoundPlayer extends DroneSoundPlayer
     {
         super()
 
-        const [_, { oscillator, gain }] = this.addDroneOscillator()
-        this.osc__ref = oscillator
-        this.osc__ref.frequency.value = 110
-        this.gain__ref = gain
+        const [, { oscillator: oscillator_1, gain: gain_1 }] = this.addDroneOscillator()
+        this.osc_1__ref = oscillator_1
+        this.gain_1__ref = gain_1
+
+        const [, { oscillator: oscillator_2, gain: gain_2 }] = this.addDroneOscillator()
+        this.osc_2__ref = oscillator_2
+        this.gain_2__ref = gain_2
 
         this.lissajous_curve = lissajous_curve
         this.unsubscribeLissajousUpdate = lissajous_curve.useLissajousCurveParamStore.subscribe(
             this.updateParam.bind(this)
         )
 
-        this.wave_form_dict = new Map()
+        this.music_context = new MusicContext()
+        this.music_context.bpm = 120
+        this.music_context.base_note = 69 // A4
     }
 
-    updateParam(state: LissajousState & LissajousAction, prev_state: LissajousState & LissajousAction)
+    updateParam(state: LissajousState & LissajousAction)
     {
         // Change wave form.
         const a = state.a
         const b = state.b
-        const phi = state.phi
+        const a_freq = getJustIntonationFrequencyFromC(a, convertMIDINumberToFrequency(this.music_context.base_note))
+        const b_freq = getJustIntonationFrequencyFromC(b, convertMIDINumberToFrequency(this.music_context.base_note))
 
-        // Change waveform if `a` or `b` changes.
-        if (a != prev_state.a || b != prev_state.b)
-        {
-            const a_b = `${a},${b}` as const
-            if (!this.wave_form_dict.has(a_b))
-            {
-                this.wave_form_dict.set(a_b, this.createPeriodicWaveFrom(a, b))
-            }
-
-            this.osc__ref.setPeriodicWave(this.wave_form_dict.get(a_b)!)
-        }
-
-        if (phi != prev_state.phi)
-        {
-            // this.osc__ref.frequency.value = mapLinearToExp(phi, 0, 2 * Math.PI, 440, 880)
-        }
-    }
-
-    createPeriodicWaveFrom(a: number, b: number)
-    {
-        const len = Math.max(a, b)
-        /** Starting from 1. */
-
-        let array_a = new Float32Array(len + 1).fill(0)
-        let array_b = new Float32Array(len + 1).fill(0)
-
-        function findAllFactors(number_less_than_twenty: number)
-        {
-            let result = []
-
-            // const primes = [2, 3, 5, 7, 11, 13, 17, 19]
-            // for (const d of primes)
-            // {
-            //     if (number_less_than_twenty % d == 0) { result.push(d) }
-            // }
-
-            for (let i = 0; i < 20; i++)
-            {
-                if (number_less_than_twenty % i == 0) { result.push(i) }
-            }
-
-            return result
-        }
-
-        array_a[0] = 1
-        array_b[0] = 1
-
-        for (const f of findAllFactors(a))
-        {
-            array_a[f] = 1
-        }
-        for (const f of findAllFactors(b))
-        {
-            array_b[f] = 1
-        }
-
-        array_a[a] = 1
-        array_b[b] = 1
-
-        // If using prime number only.
-        // const prime_position = [0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0]
-        // for (let i = 0; i < a; i++)
-        // {
-        //     array_a[i] = prime_position[i] * (i / a)
-        // }
-
-        // for (let i = 0; i < b; i++)
-        // {
-        //     array_b[i] = prime_position[i] * (i / b)
-        // }
-
-        return this.audio_context.createPeriodicWave(array_a, array_b, { disableNormalization: false })
+        this.osc_1__ref.frequency.exponentialRampToValueAtTime(a_freq, this.audio_context.currentTime + 0.01)
+        this.osc_2__ref.frequency.exponentialRampToValueAtTime(b_freq, this.audio_context.currentTime + 0.01)
     }
 
     /**
@@ -126,9 +66,9 @@ export class LissajousSoundPlayer extends DroneSoundPlayer
     {
         if (this.audio_context.state == "running")
         {
-            const param_store = this.lissajous_curve.useLissajousCurveParamStore.getState()
-            this.updateParam(param_store, { ...param_store, a: -Infinity, b: -Infinity, phi: -Infinity })
-            this.osc__ref.start(this.audio_context.currentTime)
+            this.process()
+            this.osc_1__ref.start(this.audio_context.currentTime)
+            this.osc_2__ref.start(this.audio_context.currentTime)
         }
     }
 
@@ -137,7 +77,76 @@ export class LissajousSoundPlayer extends DroneSoundPlayer
         if (this.audio_context.state == "running")
         {
             super.stop()
+            window.clearTimeout(this.process__setTimeout_id)
             this.unsubscribeLissajousUpdate()
+        }
+    }
+
+    process__setTimeout_id: number = -1
+    readonly pattern_and_weight_map = new Map([
+        ["one_quater", 10], ["two_quater", 5], ["full_note", 2],
+        // ["triplet", 1]
+    ] as const)
+    readonly pattern_array = [...this.pattern_and_weight_map.keys()]
+    readonly weight_array = [...this.pattern_and_weight_map.values()]
+    /**
+     * Start music process.
+     * 
+     * @param
+     */
+    process(should_schedule_next: boolean = true)
+    {
+        const param_store = this.lissajous_curve.useLissajousCurveParamStore.getState()
+        let new_a = Math.round(generateRandomNumberSkewedMin(1, 10, 2))
+        let new_b = Math.round(generateRandomNumberSkewedMin(1, 10, 2))
+        if (Math.abs(new_a - new_b) == 1) // Avoid colliding.
+        {
+            const new_offset = Math.round(generateRandomNumberOfRange(2, 4))
+            new_a < new_b
+                ? new_a += new_offset
+                : new_b += new_offset
+        }
+        param_store.setA(new_a)
+        param_store.setB(new_b)
+        this.updateParam(param_store)
+
+        if (!should_schedule_next)
+        {
+            return
+        }
+
+        // Schedule next:
+        switch (getWeightedChoice(this.pattern_array, this.weight_array))
+        {
+            case "one_quater": {
+                this.process__setTimeout_id = window.setTimeout(
+                    this.process.bind(this), convertBeatToDuration(1, this.music_context.bpm) * 1000
+                )
+            } break
+
+            case "two_quater": {
+                this.process__setTimeout_id = window.setTimeout(
+                    this.process.bind(this), convertBeatToDuration(2, this.music_context.bpm) * 1000
+                )
+            } break
+
+            case "full_note": {
+                this.process__setTimeout_id = window.setTimeout(
+                    this.process.bind(this), convertBeatToDuration(4, this.music_context.bpm) * 1000
+                )
+            } break
+
+            // case "triplet": {
+            //     this.process__setTimeout_id = window.setTimeout(
+            //         () => this.process(/* should_schedule_next: */ false), convertBeatToDuration(1 / 3, this.music_context.bpm) * 1000
+            //     )
+            //     this.process__setTimeout_id = window.setTimeout(
+            //         () => this.process(/* should_schedule_next: */ false), convertBeatToDuration(1 / 3, this.music_context.bpm) * 1000
+            //     )
+            //     this.process__setTimeout_id = window.setTimeout(
+            //         () => this.process(/* should_schedule_next:  */ true), convertBeatToDuration(1 / 3, this.music_context.bpm) * 1000
+            //     )
+            // } break
         }
     }
 }

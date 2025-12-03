@@ -14,7 +14,14 @@ export default function LissajousPage()
     const lissajous_player = useRef<LissajousSoundPlayer>(null)
     const canvas_ref = useRef<HTMLCanvasElement>(null)
 
-    const start = () =>
+    const handleMouseMove = (event: MouseEvent) =>
+    {
+        const x = event.clientX
+        const y = event.clientY
+
+        lissajous_curve.current.updateMouseLocation(x, y)
+    }
+    const start = (event: React.MouseEvent<HTMLDivElement>) =>
     {
         setWhetherStarted(true)
         lissajous_player.current = new LissajousSoundPlayer(lissajous_curve.current)
@@ -22,21 +29,26 @@ export default function LissajousPage()
         {
                 lissajous_player.current!.start()
         })
+        lissajous_curve.current.updateMouseLocation(event.clientX, event.clientY)
     }
 
     useEffect(() =>
     {
+        window.addEventListener("mousemove", handleMouseMove)
+
         return () =>
         {
             lissajous_player.current?.stop()
+            window.removeEventListener("mousemove", handleMouseMove)
         }
     }, [])
 
-    return (<div id="lissajous_curve_harmonics">{
+    return (<div id="lissajous_curve">{
         is_started
-            ? (
+            ? (<>
                 <CurveDisplay lissajous_curve={lissajous_curve} canvas_ref={canvas_ref} />
-            )
+                <ValueDisplay lissajous_curve={lissajous_curve} />
+            </>)
             : (<div className="PageCover" onClick={start}>
                 <div className="Text">Lissajous Curve & Harmonics</div>
             </div>)
@@ -103,4 +115,16 @@ function CurveDisplay({ lissajous_curve, canvas_ref }: CurveDisplay__Params)
 type CurveDisplay__Params = {
     lissajous_curve: RefObject<LissajousCurve>
     canvas_ref: RefObject<HTMLCanvasElement | null>
+}
+
+function ValueDisplay({ lissajous_curve }: ValueControl__Params)
+{
+
+    return (<div id="value_control">
+
+    </div>)
+}
+
+type ValueControl__Params = {
+    lissajous_curve: RefObject<LissajousCurve>
 }
