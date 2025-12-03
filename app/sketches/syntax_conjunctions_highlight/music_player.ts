@@ -19,86 +19,98 @@ const offset_to_subsemitone = 6
 const midi_c4_note = 60
 
 
-
-export function playMusic()
+export class SyntaxPlayer
 {
-    const text_container = document.getElementById("text_container")
-    let music_context = new MusicContext()
-    if (text_container == null) { return }
+    should_continue_play = true
+    tick__setTimeout_ids: number[] = []
 
-    getToneTransport().bpm.value = music_context.bpm
-
-    const tree_walker = document.createTreeWalker(text_container, NodeFilter.SHOW_ELEMENT)
-    tick(music_context, tree_walker)
-}
-
-
-
-/** Put n more events into the `setTimeout`. */
-function tick(music_context: MusicContext, tree_walker: TreeWalker)
-{
-    let next_node
-    do
+    playMusic()
     {
-        next_node = tree_walker.nextNode()
-        if (next_node == null) { return }
+        const text_container = document.getElementById("text_container")
+        let music_context = new MusicContext()
+        if (text_container == null) { return }
+
+        getToneTransport().bpm.value = music_context.bpm
+
+        this.should_continue_play = true
+        const tree_walker = document.createTreeWalker(text_container, NodeFilter.SHOW_ELEMENT)
+        this.tick(music_context, tree_walker)
     }
-    while (next_node.nodeType != Node.ELEMENT_NODE || (next_node as HTMLElement).tagName != "SPAN");
 
-    const span_element = next_node as HTMLSpanElement
-
-    // If not a conjunction, cut into words.
-    if (span_element.dataset["type"] == null || span_element.dataset["type"] == undefined)
+    stopPlaying()
     {
-        let time_offset = 0
-        for (const match of span_element.innerText.matchAll(/\b\w+\b/g))
-        {
-            const word = match[0]
-            const index = match.index!;
-            if (word.length == 0) { continue }
+        this.should_continue_play = false
+        SoundManager.stop()
+        for (const id of this.tick__setTimeout_ids) { clearTimeout(id) }
+    }
 
-            const notes_to_play = getNoteOfOrdinary(music_context, word)
-            /** Including interval until next note */
-            const notes_length = getNoteLength(word)
+    /** Put n more events into the `setTimeout`. */
+    tick(music_context: MusicContext, tree_walker: TreeWalker)
+    {
+        let next_node
+        do
+        {
+            next_node = tree_walker.nextNode()
+            if (next_node == null) { return }
+        }
+        while (next_node.nodeType != Node.ELEMENT_NODE || (next_node as HTMLElement).tagName != "SPAN");
+
+        const span_element = next_node as HTMLSpanElement
+
+        // If not a conjunction, cut into words.
+        if (span_element.dataset["type"] == null || span_element.dataset["type"] == undefined)
+        {
+            let time_offset = 0
+            for (const match of span_element.innerText.matchAll(/\b\w+\b/g))
+            {
+                const word = match[0]
+                const index = match.index!;
+                if (word.length == 0) { continue }
+                if (!this.should_continue_play) { break }
+
+                const notes_to_play = getNoteOfOrdinary(music_context, word)
+                /** Including interval until next note */
+                const notes_length = getNoteLength(word)
+                const notes_length_in_milliseconds = notes_length.toMilliseconds()
+                const notes_duration_in_milliseconds = notes_length_in_milliseconds * Math.random() * 0.75
+
+                this.tick__setTimeout_ids.push(window.setTimeout(function ()
+                {
+                    SoundManager.playNote(notes_to_play, { duration: notes_duration_in_milliseconds })
+
+                    let range = new Range()
+                    range.setStart(span_element.firstChild!, index)
+                    range.setEnd(span_element.firstChild!, index + word.length)
+                    CSS.highlights.set("playing", new Highlight(range))
+                }, time_offset + notes_length_in_milliseconds))
+
+                time_offset += notes_length_in_milliseconds
+            }
+
+            this.tick__setTimeout_ids.push(window.setTimeout(() => this.tick(music_context, tree_walker), time_offset))
+        }
+        else
+        {
+            const phrase = span_element.innerText
+            const notes_to_play = getNoteOfConjunction(music_context, span_element)
+            const notes_length = getNoteLength(phrase)
             const notes_length_in_milliseconds = notes_length.toMilliseconds()
-            const notes_duration_in_milliseconds = notes_length_in_milliseconds * Math.random() * 0.75
+            const notes_duration_in_milliseconds = notes_length_in_milliseconds * Math.random() * 0.5
 
             setTimeout(function ()
             {
                 SoundManager.playNote(notes_to_play, { duration: notes_duration_in_milliseconds })
 
                 let range = new Range()
-                range.setStart(span_element.firstChild!, index)
-                range.setEnd(span_element.firstChild!, index + word.length)
+                range.setStartBefore(span_element)
+                range.setEndAfter(span_element)
                 CSS.highlights.set("playing", new Highlight(range))
-            }, time_offset + notes_length_in_milliseconds)
+            }, notes_length_in_milliseconds)
 
-            time_offset += notes_length_in_milliseconds
+            this.tick__setTimeout_ids.push(window.setTimeout(() => this.tick(music_context, tree_walker), notes_length_in_milliseconds))
         }
 
-        setTimeout(() => tick(music_context, tree_walker), time_offset)
     }
-    else
-    {
-        const phrase = span_element.innerText
-        const notes_to_play = getNoteOfConjunction(music_context, span_element)
-        const notes_length = getNoteLength(phrase)
-        const notes_length_in_milliseconds = notes_length.toMilliseconds()
-        const notes_duration_in_milliseconds = notes_length_in_milliseconds * Math.random() * 0.5
-
-        setTimeout(function ()
-        {
-            SoundManager.playNote(notes_to_play, { duration: notes_duration_in_milliseconds })
-
-            let range = new Range()
-            range.setStartBefore(span_element)
-            range.setEndAfter(span_element)
-            CSS.highlights.set("playing", new Highlight(range))
-        }, notes_length_in_milliseconds)
-
-        setTimeout(() => tick(music_context, tree_walker), notes_length_in_milliseconds)
-    }
-
 }
 
 function getNoteLength(from_word: string)

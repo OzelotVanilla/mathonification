@@ -82,6 +82,13 @@ export class MusicalDoublePendulum extends DoublePendulum
         )
     }
 
+    stop()
+    {
+        this.ball_1_osc.disconnect()
+        this.master_gain.disconnect()
+        this.audio_context.close()
+    }
+
     static generatePendulumInUpperArea()
     {
         let pendulum = new MusicalDoublePendulum()

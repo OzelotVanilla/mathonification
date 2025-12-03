@@ -25,6 +25,12 @@ export class SoundManager
         }
     }
 
+    public static stop()
+    {
+        this.tonejs_instruments.values().forEach(v => v.dispose())
+        this.init()
+    }
+
     public static playNote(midi_note_number: number, param?: Param_playNote): void;
     public static playNote(note_name: string, param?: Param_playNote): void;
     public static playNote(midi_note_numbers: number[], param?: Param_playNote): void;

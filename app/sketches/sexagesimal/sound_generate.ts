@@ -66,6 +66,13 @@ export class MicrotonalityPlayer
         })
     }
 
+    stop()
+    {
+        for (const o of this.oscs) { o.disconnect() }
+        for (const g of this.gains) { g.disconnect() }
+        this.audio_context.close()
+    }
+
     convertDigitIntoFreq(digit: number)
     {
         return convertMIDINumberToFrequency(this.music_context.base_note) * Math.pow(2, digit / 60)

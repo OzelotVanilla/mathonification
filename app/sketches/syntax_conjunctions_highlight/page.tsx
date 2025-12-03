@@ -9,7 +9,7 @@ import React, { Dispatch, SetStateAction, useEffect, useRef, useState } from "re
 import { convertToTokens } from "./tokeniser";
 import { ConjunctionType } from "./constants";
 import { highlightContent } from "./highlighter";
-import { playMusic } from "./music_player";
+import { SyntaxPlayer } from "./music_player";
 
 export default function SyntaxConjuctionsHighlight()
 {
@@ -78,17 +78,29 @@ type FormReturnData = {
 function RightResultArea({ user_text }: RightResultArea__Params)
 {
     const text_container_ref = useRef<HTMLDivElement>(null)
+    const syntax_player = useRef<SyntaxPlayer>(null)
 
     let content_to_show: React.ReactNode = user_text.length > 0
         ? (<p>{convertUserTextToContent(user_text, text_container_ref)}</p>)
         : (<p className="placeholder">Please input text at left, then press the button to generate.</p>)
+
+    useEffect(() =>
+    {
+        syntax_player.current = new SyntaxPlayer()
+    }, [])
 
     useEffect(function ()
     {
         if (user_text.length > 0)
         {
             highlightContent()
-            playMusic()
+            syntax_player.current?.playMusic()
+        }
+
+        // Clean-up.
+        return () =>
+        {
+            syntax_player.current?.stopPlaying()
         }
     }, [user_text])
 

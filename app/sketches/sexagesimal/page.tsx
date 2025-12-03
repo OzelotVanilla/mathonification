@@ -55,6 +55,15 @@ export default function SexagesimalPage()
     {
     }, [is_started])
 
+    useEffect(() =>
+    {
+        // Clean-up.
+        return () =>
+        {
+            music_player.current?.stop()
+        }
+    }, [])
+
     return (<div id="sexagesimal">
         {
             is_started

@@ -2,7 +2,7 @@
 
 import "./page.scss"
 
-import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { SimplePendulum } from "@/scripts/pendulum/SimplePendulum.interface"
 import { DoublePendulum, getEvenMassDoublePendulum } from "@/scripts/pendulum/DoublePendulum"
 import { drawMusicDoublePendulumOnCanvas } from "./draw_pendulum_on_canvas"
@@ -82,6 +82,15 @@ export default function DoublePendulumPage()
 
         setPendulums([pendulum])
     }
+
+    useEffect(() =>
+    {
+        // Clean-up.
+        return () =>
+        {
+            for (const p of pendulums) { p.stop() }
+        }
+    }, [pendulums])
 
     return (
         <div id="pendulums_container" onClick={start}>
