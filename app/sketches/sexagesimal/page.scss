@@ -1,5 +1,5 @@
-$MovingDecsPanel_z_index: 10;
-$CenterDecSexaNumber_z_index: 20;
+$CenterDecSexaNumber_z_index: 10;
+$MovingDecsPanel_z_index: 20;
 
 #sexagesimal
 {
@@ -22,22 +22,23 @@ $CenterDecSexaNumber_z_index: 20;
     display: inline-flex;
     flex-direction: column;
     align-items: center;
+    user-select: none;
 
     padding-bottom: 4vh;
 
     > .OriginDecNumber
     {
-        font-size: 1em;
+        font-size: 3em;
     }
 
     > .BabylonianSexagesimalNumber
     {
-        font-size: 1.4em;
+        font-size: 3.6em;
     }
 
     > .DecRepr
     {
-        font-size: 1.2em;
+        font-size: 3.6em;
     }
 }
 
