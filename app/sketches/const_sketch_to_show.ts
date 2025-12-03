@@ -7,7 +7,7 @@ export const sketch_to_show__array: SketchMetaData[] = [
     {
         name: "Double Pendulum",
         path_name: "double_pendulum",
-        description: "Can you predict a double pendulum ?"
+        description: "Can you predict a double pendulum?"
     },
     {
         name: "Sexagesimal",
