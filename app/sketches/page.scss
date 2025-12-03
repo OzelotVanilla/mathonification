@@ -56,10 +56,14 @@
             background-color: #ffffff30;
             backdrop-filter: blur(2px);
 
+            font-family: "Klee";
+
             .ant-card-cover
             {
                 margin: 0px;
                 height: 50%;
+
+                font-weight: 700;
 
                 .ImageCover
                 {
@@ -75,6 +79,8 @@
             {
                 /* padding: top-and-bottom left-and-right */
                 padding: min(15px, 2vh) min(10px, 2vw);
+
+                font-weight: 600;
             }
         }
     }
