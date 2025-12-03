@@ -2,6 +2,7 @@
 
 import "./page.scss"
 import "./highlight.scss"
+import belling_the_cat__text from "@/public/aesop_text/belling_the_cat.txt"
 
 import { Button, Card, Form, Typography } from "antd";
 import TextArea from "antd/es/input/TextArea";
@@ -36,6 +37,9 @@ function PageTitle()
 function LeftFormArea({ setUserText }: LeftFormArea__Params)
 {
     const [form] = Form.useForm()
+    const form_init_value = {
+        user_text: belling_the_cat__text
+    }
 
     function onFormSubmit(values: FormReturnData)
     {
@@ -43,21 +47,9 @@ function LeftFormArea({ setUserText }: LeftFormArea__Params)
         {
             setUserText(values.user_text)
         }
-        else
-        {
-            fetch("/aesop_text/belling_the_cat.txt")
-                .then(
-                    response =>
-                    {
-                        if (response.ok) { return response.text() }
-                        else { return "" }
-                    }
-                )
-                .then(value => setUserText(value))
-        }
     }
 
-    return (<Form id="left_form_area" variant="filled" form={form} onFinish={onFormSubmit}>
+    return (<Form id="left_form_area" variant="filled" form={form} initialValues={form_init_value} onFinish={onFormSubmit}>
         <Form.Item name="user_text" noStyle={true}>
             <TextArea id="text_input_area" placeholder="Input your text here (English only)." />
         </Form.Item>
