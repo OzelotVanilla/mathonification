@@ -20,9 +20,9 @@ export function drawMusicDoublePendulumOnCanvas(pendulum: MusicalDoublePendulum,
     // Draw limbs.
     c.strokeStyle = "black"
     c.lineWidth = line_width
+    c.beginPath()
     c.moveTo(middle_point_x, middle_point_y)
     c.lineTo(x_1, y_1)
-    c.stroke()
     c.moveTo(x_1, y_1)
     c.lineTo(x_2, y_2)
     c.stroke()
@@ -40,12 +40,4 @@ export function drawMusicDoublePendulumOnCanvas(pendulum: MusicalDoublePendulum,
     c.beginPath()
     c.arc(x_2, y_2, arc_radius, 0, 2 * Math.PI)
     c.fill()
-
-    // // Random-alike moving ball.
-    // for (const { x, y } of pendulum.getOrbitingBallsPosition())
-    // {
-    //     c.beginPath()
-    //     c.arc(x + middle_point_x, y + middle_point_y, arc_radius, 0, 2 * Math.PI)
-    //     c.fill()
-    // }
 }
