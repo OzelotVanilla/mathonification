@@ -7,8 +7,8 @@ export function drawMusicDoublePendulumOnCanvas(pendulum: MusicalDoublePendulum,
     const line_width = 2
     const arc_radius = 4
 
-    const middle_point_x = canvas_context.canvas.width / 2
-    const middle_point_y = canvas_context.canvas.height / 2
+    const middle_point_x = canvas_context.canvas.clientWidth / 2
+    const middle_point_y = canvas_context.canvas.clientHeight / 2
     const c = canvas_context
 
     let { x_1, y_1, x_2, y_2 } = pendulum.getPosition()

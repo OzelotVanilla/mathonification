@@ -4,9 +4,9 @@ import "./page.scss"
 
 import { useEffect, useRef, useState } from "react"
 import { SimplePendulum } from "@/scripts/pendulum/SimplePendulum.interface"
-import { DoublePendulum, getEvenMassDoublePendulum } from "@/scripts/pendulum/DoublePendulum"
 import { drawMusicDoublePendulumOnCanvas } from "./draw_pendulum_on_canvas"
 import { MusicalDoublePendulum } from "./MusicalDoublePendulum"
+import { adjustCanvasToDPR } from "@/utils/canvas"
 
 /**
  * 120 Hz.
@@ -29,9 +29,9 @@ export default function DoublePendulumPage()
         const canvas_context = canvas.getContext("2d")
         if (canvas_context == null) { return }
 
-        const length_of_canvas = pendulum.getMaxLength() * 2
-        canvas.height = length_of_canvas + 20 // Add 20 px to avoid clipping of moving ball.
-        canvas.width = length_of_canvas + 20
+        // Add 20 px to avoid clipping of moving ball.
+        const length_of_canvas = pendulum.getMaxLength() * 2 + 20
+        adjustCanvasToDPR(canvas, length_of_canvas, length_of_canvas)
 
         // Physics.
 
