@@ -1,11 +1,12 @@
 "use client"
 
-import { RefObject, useEffect, useRef, useState } from "react"
-
 import "./page.scss"
+
+import { RefObject, useEffect, useRef, useState } from "react"
 import { LissajousCurve } from "./lissajous_curve"
 import { drawLissajousCurveOnCanvas } from "./draw_lissajous_curve"
 import { LissajousSoundPlayer } from "./sound_generate"
+import { adjustCanvasToDPR } from "@/utils/canvas"
 
 export default function LissajousPage()
 {
@@ -49,19 +50,12 @@ export default function LissajousPage()
  */
 function CurveDisplay({ lissajous_curve, canvas_ref }: CurveDisplay__Params)
 {
-
     const onWindowResize = () =>
     {
         if (canvas_ref == null || canvas_ref.current == null) { return }
         const dpr = window.devicePixelRatio || 1;
-        const canvas__css_width = canvas_ref.current.clientWidth
-        const canvas__css_height = canvas_ref.current.clientHeight
-        canvas_ref.current.width = canvas__css_width * dpr
-        canvas_ref.current.height = canvas__css_height * dpr
-        const c = canvas_ref.current.getContext("2d")!
-        c.transform(1, 0, 0, 1, 0, 0)
-        c.scale(dpr, dpr)
-        c.imageSmoothingEnabled = false
+
+        adjustCanvasToDPR(canvas_ref.current)
 
         lissajous_curve.current.viewport_x_max = window.innerWidth
         lissajous_curve.current.viewport_y_max = window.innerHeight
@@ -72,6 +66,8 @@ function CurveDisplay({ lissajous_curve, canvas_ref }: CurveDisplay__Params)
     useEffect(() =>
     {
         if (canvas_ref == null || canvas_ref.current == null) { return }
+        const c = canvas_ref.current.getContext("2d")!
+        c.imageSmoothingEnabled = false
         onWindowResize()
 
         window.addEventListener("resize", onWindowResize)
