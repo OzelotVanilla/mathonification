@@ -7,3 +7,9 @@ declare module "*.txt" // To load txt statically
     const content: string
     export default content
 }
+
+declare module "*.glsl" // To load shader statically
+{
+    const content: string
+    export default content
+}

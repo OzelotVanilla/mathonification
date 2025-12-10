@@ -9,6 +9,11 @@ const next_config = {
             type: "asset/source",
         });
 
+        config.module.rules.push({
+            test: /\.(glsl)$/,
+            type: "asset/source",
+        });
+
         return config;
     },
 } satisfies NextConfig

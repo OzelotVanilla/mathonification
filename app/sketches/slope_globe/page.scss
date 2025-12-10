@@ -1,0 +1,40 @@
+#slope_globe
+{
+    // Fixes canvas overflow.
+    position: absolute;
+    top: 0;
+    left: 0;
+
+    width: 100%;
+    height: 100%;
+}
+
+#globe_display
+{
+    width: 100%;
+    height: 100%;
+
+    #globe_display_canvas
+    {
+        width: 100%;
+        height: 100%;
+    }
+}
+
+.PageCover
+{
+    width: 100%;
+    height: 100%;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    .Text
+    {
+        text-align: center;
+        font-size: 4vw;
+        margin-bottom: 4vh;
+        user-select: none;
+    }
+}
