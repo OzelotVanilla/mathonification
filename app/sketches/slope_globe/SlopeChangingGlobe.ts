@@ -45,7 +45,7 @@ export class SlopeChangingGlobe
 
         this.geometry = new PlaneGeometry(
             2, 2, // width and height
-            128, 128 // resolution
+            64, 64 // resolution
         )
         this.material = new ShaderMaterial({
             vertexShader: vertex_shader,
