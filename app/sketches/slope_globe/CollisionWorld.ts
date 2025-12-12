@@ -128,7 +128,7 @@ export class CollisionWorld
         const delta_ms = Math.min(50, now - this.last_call_timestamp__update)
         this.last_call_timestamp__update = now
         this.updateCurvature(new_curvature)
-        this.world.step(1 / 60, delta_ms / 1000, 20)
+        this.world.step(1 / 300, delta_ms / 1000, 20)
         this.checkBalls(now)
     }
 
@@ -143,6 +143,24 @@ export class CollisionWorld
         let shape_data__ref = this.ground_shape.data
         const debug_positions = this.debug_geometry.attributes.position
         const size = shape_data__ref.length
+
+        function rotate90Degrees(matrix: number[][]): number[][]
+        {
+            const rows = matrix.length;
+            const cols = matrix[0].length;
+            // 新しい行列を作成（元の列数が行数に、元の行数が列数になる）
+            const rotatedMatrix: number[][] = Array.from({ length: cols }, () => new Array(rows).fill(0));
+
+            for (let i = 0; i < rows; i++)
+            {
+                for (let j = 0; j < cols; j++)
+                {
+                    // 時計回り90度回転の変換式: (i, j) -> (j, rows - 1 - i)
+                    rotatedMatrix[j][rows - 1 - i] = matrix[i][j];
+                }
+            }
+            return rotatedMatrix;
+        }
 
         for (let y = 0; y < size; y++)
         {
@@ -163,6 +181,8 @@ export class CollisionWorld
                 debug_positions.setZ(vertex_index, z)
             }
         }
+
+        this.ground_shape.data = rotate90Degrees(shape_data__ref)
 
         debug_positions.needsUpdate = true
 
