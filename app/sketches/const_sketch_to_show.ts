@@ -18,6 +18,11 @@ export const sketch_to_show__array: SketchMetaData[] = [
         name: "LissaTone",
         path_name: "lissajous_curve_harmonics",
         description: "Just in-tone-nation."
+    },
+    {
+        name: "Slope Globe",
+        path_name: "slope_globe",
+        description: "Sphere or Saddle."
     }
 ] as const
 
