@@ -7,10 +7,9 @@
 import * as cannon from "cannon-es"
 import { DoubleSide, Mesh, MeshBasicMaterial, MeshStandardMaterial, PlaneGeometry, SphereGeometry } from "three"
 import { SlopeChangingGlobe } from "./SlopeChangingGlobe"
-import { SoundManager } from "@/utils/SoundManager"
-import { clamp, mapLinearToLinear } from "@/utils/math"
+import { onBallFirstCollide__playSound } from "./sound_generate"
 
-interface CollisionEvent
+export interface CollisionEvent
 {
     body: cannon.Body,
     contact: cannon.ContactEquation
@@ -242,24 +241,21 @@ export class CollisionWorld
             ),
             material: this.ball_material
         })
+
+        // Collision
+        // Notice: All collision handler function need to call at next JS loop,
+        //  otherwise the event will be empty.
         let is_collided = false
-        body.addEventListener("collide", function (event: CollisionEvent)
+        const collisionHandler = function (event: CollisionEvent)
         {
+
             if (!is_collided)
             {
-                // SoundManager.playNote()
-                setTimeout(() =>
-                {
-                    const v = event.body.velocity
-                    const sum = v.x + v.y + v.z
-                    console.log(sum)
-                    SoundManager.playNote(
-                        Math.floor(mapLinearToLinear(clamp(-2, sum, 4), -2, 4, 21, 90))
-                    )
-                })
+                setTimeout(() => onBallFirstCollide__playSound(event))
                 is_collided = true
             }
-        })
+        }
+        body.addEventListener("collide", (event: CollisionEvent) => setTimeout(collisionHandler.bind(this, event)))
         this.world.addBody(body)
 
         this.falling_balls.push({ mesh, body, radius })
