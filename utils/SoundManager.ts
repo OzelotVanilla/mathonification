@@ -60,6 +60,8 @@ export class SoundManager
     public static stop()
     {
         this.tonejs_instruments.values().forEach(v => v.dispose())
+        this.tonejs_instruments.clear()
+        this.sound_effect_chain_manager.dispose()
         this.init()
     }
 
@@ -139,6 +141,7 @@ export class SoundManager
         }).toDestination()
 
         // Add pre-defined effect chain.
+        this.sound_effect_chain_manager.add("none", [])
         this.sound_effect_chain_manager.add("vibrato", [
             new Vibrato(5, 0.2)
         ])

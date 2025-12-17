@@ -11,7 +11,6 @@ export class SoundEffectChainManager
      * All `ToneAudioNode` in the chain is connected.
      */
     private effect_chain_dict: Map<string, ToneAudioNode[]> = new Map([
-        ["none", []]
     ])
 
     constructor()
@@ -58,5 +57,18 @@ export class SoundEffectChainManager
     has(chain_name: string)
     {
         return this.effect_chain_dict.has(chain_name)
+    }
+
+    dispose()
+    {
+        for (const effect_chain of this.effect_chain_dict.values())
+        {
+            for (const effect of effect_chain)
+            {
+                effect.disconnect()
+            }
+        }
+
+        this.effect_chain_dict.clear()
     }
 }
