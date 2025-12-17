@@ -1,0 +1,35 @@
+#ecosystem
+{
+    width: 100%;
+    height: 100%;
+}
+
+#ecosystem_display
+{
+    width: 100%;
+    height: 100%;
+
+    #ecosystem_canvas
+    {
+        width: 100%;
+        height: 100%;
+    }
+}
+
+.PageCover
+{
+    width: 100%;
+    height: 100%;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    .Text
+    {
+        text-align: center;
+        font-size: 4vw;
+        margin-bottom: 4vh;
+        user-select: none;
+    }
+}

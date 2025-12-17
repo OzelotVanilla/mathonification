@@ -247,3 +247,138 @@ export function getWeightedChoice<EleType>(from_array: ArrayLike<EleType>, weigh
     // Index will be greater than the actual range being tested.
     return from_array[index - 1]
 }
+
+/**
+ * A small scale 2D vector.
+ * 
+ * Minimal mutable vector utility for sketch-scale simulations.
+ * Designed for readable motion logic rather than strict physics.
+ * 
+ * @author ChatGPT
+ */
+export class Vec2
+{
+    static get zero() { return new Vec2(0, 0) }
+
+    constructor(
+        public x: number = 0,
+        public y: number = 0
+    )
+    { }
+
+    /** Create a copy of this vector */
+    clone()
+    {
+        return new Vec2(this.x, this.y)
+    }
+
+    /** Add another vector (mutates this) */
+    add(v: Vec2)
+    {
+        this.x += v.x
+        this.y += v.y
+        return this
+    }
+
+    /** Subtract another vector (mutates this) */
+    subtract(v: Vec2)
+    {
+        this.x -= v.x
+        this.y -= v.y
+        return this
+    }
+
+    /** Multiply by scalar (mutates this) */
+    scale(s: number)
+    {
+        this.x *= s
+        this.y *= s
+        return this
+    }
+
+    /** Euclidean length */
+    get length()
+    {
+        return Math.hypot(this.x, this.y)
+    }
+
+    /** Normalize to unit length if possible */
+    normalize()
+    {
+        const l = this.length
+        if (l > 0) this.scale(1 / l)
+        return this
+    }
+
+    /** Distance to another vector */
+    getDistanceTo(v: Vec2)
+    {
+        return Math.hypot(this.x - v.x, this.y - v.y)
+    }
+
+    getAngle()
+    {
+        const raw_angle = Math.atan2(this.y, this.x)
+
+        return raw_angle < 0
+            ? raw_angle + 2 * Math.PI
+            : raw_angle
+    }
+
+    /**
+     * Smoothly rotate velocity direction toward a target direction,
+     * while limiting speed during sharp turns (driving-like behavior).
+     *
+     * @param target_dir      Desired facing direction (length irrelevant)
+     * @param t               Interpolation factor [0, 1]
+     * @param max_turn_speed  Maximum allowed speed while turning
+     *
+     * Behavior:
+     * - Keeps current speed when direction change is small
+     * - Gradually reduces speed when turning sharply
+     * - Preserves continuity and inertia
+     */
+    lerpDirection(
+        target_dir: Vec2,
+        t: number,
+        max_turn_speed: number
+    )
+    {
+        const currentSpeed = this.length
+        if (currentSpeed === 0) return this
+
+        const currentDir = this.clone().normalize()
+        const desiredDir = target_dir.clone().normalize()
+
+        // cosine of angle between directions (-1 ~ 1)
+        const dot =
+            currentDir.x * desiredDir.x +
+            currentDir.y * desiredDir.y
+
+        // angle factor: 0 (same direction) -> 1 (opposite)
+        const turnFactor = (1 - Math.max(-1, Math.min(1, dot))) * 0.5
+
+        // interpolate direction
+        currentDir
+            .lerp(desiredDir, t)
+            .normalize()
+
+        // limit speed while turning
+        const allowedSpeed =
+            currentSpeed * (1 - turnFactor) +
+            max_turn_speed * turnFactor
+
+        this.x = currentDir.x * allowedSpeed
+        this.y = currentDir.y * allowedSpeed
+
+        return this
+    }
+
+    /** Linear interpolation (utility) */
+    lerp(to: Vec2, t: number)
+    {
+        this.x += (to.x - this.x) * t
+        this.y += (to.y - this.y) * t
+        return this
+    }
+}
