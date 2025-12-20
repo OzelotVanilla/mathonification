@@ -34,7 +34,7 @@ function SketchGallery({ is_loading }: SketchGallery__Params)
 
                 return (<div className="SketchCard" key={metadata.path_name}><Link href={`/sketches/${metadata.path_name}`}>
                     <Card hoverable={true} cover={cover_image} loading={is_loading}>
-                        <Card.Meta title={metadata.name ?? ""} description={metadata.description ?? ""} />
+                        <Card.Meta title={metadata.name ?? ""} />
                     </Card>
                 </Link></div>)
             })

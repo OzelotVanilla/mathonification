@@ -1,29 +1,33 @@
 export const sketch_to_show__array: SketchMetaData[] = [
     {
-        name: "Syntax Conjuctions Highlight",
-        path_name: "syntax_conjunctions_highlight",
-        description: "Your text will sing."
+        name: "singing text",
+        path_name: "singing_text",
+        // description: "Your text will sing."
     },
     {
-        name: "Double Pendulum",
-        path_name: "double_pendulum",
-        description: "Can you predict a double pendulum?"
+        name: "dancing pendulum",
+        path_name: "dancing_pendulum",
+        // description: "Can you predict a double pendulum?"
     },
     {
-        name: "Sexagesimal",
-        path_name: "sexagesimal",
-        description: "Take 60 steps to go over this octave."
+        name: "cunei sound",
+        path_name: "cunei_sound",
+        // description: "Take 60 steps to go over this octave."
     },
     {
-        name: "LissaTone",
-        path_name: "lissajous_curve_harmonics",
-        description: "Just in-tone-nation."
+        name: "lissatone",
+        path_name: "lissatone",
+        // description: "Just in-tone-nation."
     },
     {
-        name: "Slope Globe",
-        path_name: "slope_globe",
-        description: "Sphere or Saddle."
-    }
+        name: "slopy globy",
+        path_name: "slopy_globy",
+        // description: "Sphere or Saddle."
+    },
+    // {
+    //     name: "musicreatures",
+    //     path_name: "ecosystem"
+    // }
 ] as const
 
 type SketchMetaData = {
@@ -36,9 +40,9 @@ type SketchMetaData = {
      */
     path_name: string
     /**
-     * Short description for the sketch.
-     */
-    description: string
+    //  * Short description for the sketch.
+    //  */
+    // description: string
     /**
      * Path of the thumbnail image file.
      */

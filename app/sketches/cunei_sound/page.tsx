@@ -72,7 +72,7 @@ export default function SexagesimalPage()
                     <MovingDecsPanel trySetCenterNumber={trySetCenterNumber} />
                 </>)
                 : (<div className="PageCover" onClick={start}>
-                    <div className="Text">Sexagesimal</div>
+                    <div className="Text">cunei sound</div>
                 </div>)
         }
     </div>

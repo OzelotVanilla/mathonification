@@ -30,7 +30,7 @@ function PageTitle()
     const { Title } = Typography
 
     return (<Title id="page_title">
-        Syntax Conjunctions Highlight
+        Singing Text
     </Title>)
 }
 

@@ -94,7 +94,7 @@ export default function DoublePendulumPage()
 
     return (
         <div id="pendulums_container" onClick={start}>
-            {pendulums.length <= 0 ? (<p id="pendulums_container_empty__hint_text">Double Pendulum</p>) : (<></>)}
+            {pendulums.length <= 0 ? (<p id="pendulums_container_empty__hint_text">dancing pendulum</p>) : (<></>)}
             <canvas id="canvas" hidden={pendulums.length <= 0} ref={canvas_ref} />
         </div>
     )

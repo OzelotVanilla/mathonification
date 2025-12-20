@@ -39,7 +39,7 @@ export default function LissajousPage()
                 <CurveDisplay lissajous_curve={lissajous_curve} canvas_ref={canvas_ref} />
             )
             : (<div className="PageCover" onClick={start}>
-                <div className="Text">Lissajous Curve & Harmonics</div>
+                <div className="Text">lissatone</div>
             </div>)
     }
     </div>)

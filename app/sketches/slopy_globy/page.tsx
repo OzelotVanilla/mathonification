@@ -23,7 +23,7 @@ export default function SlopeGlobePage()
             is_started
                 ? (<GlobeDisplay />)
                 : (<div className="PageCover" onClick={start}>
-                    <div className="Text">Slope Globe</div>
+                    <div className="Text">slopy globy</div>
                 </div>)
         }
     </div>)

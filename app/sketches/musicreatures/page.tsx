@@ -27,7 +27,7 @@ export default function EcosystemPage()
     {
         onToneLoaded().then(() =>
         {
-            setTitle("Ecosystem")
+            setTitle("musicreatures")
         })
     })
 
