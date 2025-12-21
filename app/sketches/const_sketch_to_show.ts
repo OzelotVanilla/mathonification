@@ -24,10 +24,10 @@ export const sketch_to_show__array: SketchMetaData[] = [
         path_name: "slopy_globy",
         // description: "Sphere or Saddle."
     },
-    // {
-    //     name: "musicreatures",
-    //     path_name: "ecosystem"
-    // }
+    {
+        name: "musicreatures",
+        path_name: "musicreatures"
+    }
 ] as const
 
 type SketchMetaData = {
