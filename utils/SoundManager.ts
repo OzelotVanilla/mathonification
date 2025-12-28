@@ -1,6 +1,6 @@
 "use client"
 
-import { getContext as getToneContext, Sampler, loaded as onToneLoaded, Compressor, ToneAudioNode, Vibrato } from "tone";
+import { getContext as getToneContext, Sampler, loaded as onToneLoaded, Compressor, ToneAudioNode, Vibrato, Panner, Limiter } from "tone";
 import { isClientEnvironment } from "./env";
 import { midi_note_to_name } from "./constants";
 import { Time } from "tone/build/esm/core/type/Units";
@@ -27,6 +27,13 @@ const default_playNote_param = {
     effect_chain_name: undefined
 } satisfies Param_playNote
 
+/**
+ * Connect graph:
+ * 
+ * ```txt
+ * instrument -> sound effect -> final compressor -> final limiter.
+ * ```
+ */
 export class SoundManager
 {
     private static tonejs_instruments: Map<AvailableInstrumentName, AvailableInstrument> = new Map();
@@ -40,6 +47,18 @@ export class SoundManager
 
     private static final_compressor: Compressor
 
+    private static final_limiter: Limiter
+
+    /**
+     * A promise to indicate init status.
+     * 
+     * Will be set to `null` when dispose.
+     */
+    private static init_promise: Promise<void> | null = null
+
+    /**
+     * Sound output handling chain.
+     */
     static get output(): ToneAudioNode { return this.final_compressor }
 
     private static piano__sample_urls = Object.fromEntries(new Map(
@@ -57,12 +76,29 @@ export class SoundManager
         }
     }
 
+    public static async resume()
+    {
+        return await getToneContext().resume()
+    }
+
+    /**
+     * Dispose the previously inited components, and re-init it.
+     */
     public static stop()
     {
+        this.dispose()
+        this.init()
+    }
+
+    /**
+     * Dispose the init-ed instrument or effect. 
+     */
+    public static dispose()
+    {
+        this.init_promise = null
         this.tonejs_instruments.values().forEach(v => v.dispose())
         this.tonejs_instruments.clear()
         this.sound_effect_chain_manager.dispose()
-        this.init()
     }
 
     public static playNote(midi_note_number: number, param?: Param_playNote): void;
@@ -131,22 +167,45 @@ export class SoundManager
         return midi_note_to_name[midi_note_num]!
     }
 
-    private static init()
+    /**
+     * Init the sound manager.
+     * 
+     * This method returns the `init_promise` as init status,
+     *  and avoid init multiple times.
+     */
+    private static async init()
     {
-        this.final_compressor = new Compressor({
-            threshold: -18,
-            ratio: 3,
-            attack: 0.01,
-            release: 0.3
-        }).toDestination()
+        if (this.init_promise != null) { return this.init_promise }
 
-        // Add pre-defined effect chain.
-        this.sound_effect_chain_manager.add("none", [])
-        this.sound_effect_chain_manager.add("vibrato", [
-            new Vibrato(5, 0.2)
-        ])
+        this.init_promise = new Promise<void>(async (resolve) =>
+        {
+            this.final_compressor = new Compressor({
+                threshold: -18,
+                ratio: 3,
+                attack: 0.01,
+                release: 0.3
+            })
 
-        this.loadPianoSampler()
+            this.final_limiter = new Limiter()
+
+            // Add pre-defined effect chain.
+            this.sound_effect_chain_manager.add("none", [])
+            this.sound_effect_chain_manager.add("vibrato", [
+                new Vibrato(5, 0.2)
+            ])
+
+            this.loadPianoSampler()
+
+            await onToneLoaded()
+
+            // Connect graph creation.
+            this.final_compressor.connect(this.final_limiter)
+            this.final_limiter.toDestination()
+
+            resolve()
+        })
+
+        return this.init_promise
     }
 
     private static loadPianoSampler()
@@ -172,7 +231,8 @@ export class SoundManager
         const instrument = new Sampler({
             urls: this.piano__sample_urls,
             baseUrl: "/instrument_sample/piano/",
-            release: 1
+            release: 1,
+            volume: -12
         }).connect(this.output)
 
         this.tonejs_instruments.set(name, instrument)
