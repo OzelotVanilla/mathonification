@@ -1,6 +1,6 @@
 "use client"
 
-import { getContext as getToneContext, Sampler, loaded as onToneLoaded, Compressor, ToneAudioNode, Vibrato, Panner, Limiter } from "tone";
+import { getContext as getToneContext, Sampler, loaded as onToneLoaded, Compressor, ToneAudioNode, Vibrato, Limiter, Meter } from "tone";
 import { isClientEnvironment } from "./env";
 import { midi_note_to_name } from "./constants";
 import { Time } from "tone/build/esm/core/type/Units";
@@ -50,6 +50,11 @@ export class SoundManager
     private static final_limiter: Limiter
 
     /**
+     * Could be used to check whether clipping.
+     */
+    private static meter: Meter
+
+    /**
      * A promise to indicate init status.
      * 
      * Will be set to `null` when dispose.
@@ -57,9 +62,14 @@ export class SoundManager
     private static init_promise: Promise<void> | null = null
 
     /**
-     * Sound output handling chain.
+     * All sound node should connect to this.
      */
-    static get output(): ToneAudioNode { return this.final_compressor }
+    private static master_input: ToneAudioNode
+
+    /**
+     * For effect.
+     */
+    static get output() { return this.master_input }
 
     private static piano__sample_urls = Object.fromEntries(new Map(
         [...new Array(81)] // From `C1` to `G7` (this sample only has this range)
@@ -179,14 +189,15 @@ export class SoundManager
 
         this.init_promise = new Promise<void>(async (resolve) =>
         {
+            // Final clipping-avoiding solution.
             this.final_compressor = new Compressor({
                 threshold: -18,
                 ratio: 3,
                 attack: 0.01,
                 release: 0.3
             })
-
-            this.final_limiter = new Limiter()
+            this.final_limiter = new Limiter(-1)
+            this.meter = new Meter()
 
             // Add pre-defined effect chain.
             this.sound_effect_chain_manager.add("none", [])
@@ -194,13 +205,16 @@ export class SoundManager
                 new Vibrato(5, 0.2)
             ])
 
+            // Load pre-defined sampler.
             this.loadPianoSampler()
 
-            await onToneLoaded()
-
             // Connect graph creation.
+            this.master_input = this.final_compressor
             this.final_compressor.connect(this.final_limiter)
             this.final_limiter.toDestination()
+            this.final_limiter.connect(this.meter)
+
+            await onToneLoaded()
 
             resolve()
         })
@@ -233,7 +247,7 @@ export class SoundManager
             baseUrl: "/instrument_sample/piano/",
             release: 1,
             volume: -12
-        }).connect(this.output)
+        }).connect(this.master_input)
 
         this.tonejs_instruments.set(name, instrument)
 
