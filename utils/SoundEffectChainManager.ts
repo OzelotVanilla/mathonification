@@ -22,7 +22,7 @@ export class SoundEffectChainManager
      * 
      * @param effect_array Should not connect.
      */
-    add(chain_name: string, effect_array: ToneAudioNode[])
+    add(chain_name: string, effect_array: ToneAudioNode[], output_node: ToneAudioNode)
     {
         if (this.effect_chain_dict.has(chain_name))
         {
@@ -43,7 +43,7 @@ export class SoundEffectChainManager
 
         if (effect_array.length >= 1)
         {
-            effect_array.at(-1)?.connect(SoundManager.output)
+            effect_array.at(-1)?.connect(output_node)
         }
 
         this.effect_chain_dict.set(chain_name, effect_array)

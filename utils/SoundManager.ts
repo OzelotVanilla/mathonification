@@ -127,12 +127,12 @@ export class SoundManager
         if (effect_chain_name != undefined) // Switch to effect
         {
             // TODO: Need a more readable logic.
-            if (!this.sound_effect_chain_manager.has(effect_chain_name))
+            const instrument_with_effect__name: AvailableInstrumentName = `${instrument_name}__${effect_chain_name}`
+            if (!this.sound_effect_chain_manager.has(instrument_with_effect__name))
             {
                 return
             }
 
-            const instrument_with_effect__name: AvailableInstrumentName = `${instrument_name}__${effect_chain_name}`
             instrument = this.tonejs_instruments.get(instrument_with_effect__name)!
         }
         else // Do not use effect.
@@ -227,7 +227,10 @@ export class SoundManager
         this.addPianoSampler("piano", /* skip_when_exist: */ true)
 
         let piano_vibrato = this.addPianoSampler("piano__vibrato")
-        let effect_chain = this.sound_effect_chain_manager.get("vibrato")!
+        this.sound_effect_chain_manager.add("piano__vibrato", [
+            new Vibrato(5, 0.2)
+        ], this.effect_output)
+        let effect_chain = this.sound_effect_chain_manager.get("piano__vibrato")!
         if (effect_chain.length > 0) { piano_vibrato.connect(effect_chain[0]) }
     }
 
