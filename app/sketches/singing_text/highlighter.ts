@@ -4,7 +4,7 @@ export function highlightContent()
 {
     CSS.highlights.clear()
 
-    const text_container = document.getElementById("text_container")
+    const text_container = document.getElementById("singing_text__text_container")
     if (text_container == null) { return }
 
     const tree_walker = document.createTreeWalker(text_container, NodeFilter.SHOW_ELEMENT)

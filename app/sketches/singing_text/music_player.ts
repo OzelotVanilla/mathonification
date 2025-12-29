@@ -26,7 +26,7 @@ export class SyntaxPlayer
 
     playMusic()
     {
-        const text_container = document.getElementById("text_container")
+        const text_container = document.getElementById("singing_text__text_container")
         let music_context = new MusicContext()
         if (text_container == null) { return }
 

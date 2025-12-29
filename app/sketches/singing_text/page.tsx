@@ -96,7 +96,7 @@ function RightResultArea({ user_text }: RightResultArea__Params)
         }
     }, [user_text])
 
-    return (<div id="right_result_area"><Card className="result_card"><div id="text_container" ref={text_container_ref}>
+    return (<div id="right_result_area"><Card className="result_card"><div id="singing_text__text_container" ref={text_container_ref}>
         {content_to_show}
     </div></Card></div>)
 }
@@ -120,4 +120,3 @@ function convertUserTextToContent(user_input_text: string, text_container_ref: R
         }
     )
 }
-
