@@ -17,6 +17,8 @@ export type PlaygroundEnteringStatus = "loading" | "waiting" | "entering" | "ent
 
 /** In milliseconds. */
 const playground_gate__entering_anime__duration = 1.5 * 1000
+/** In milliseconds. */
+const zoom_to_facility__anime__duration = 1.5 * 1000
 
 /**
  * Number of music-time broadcast ticks that occur within a single measure.
@@ -104,6 +106,11 @@ function Playground({ entering_status }: Playground_Param)
     const [should_show__stage_overlay, setWhetherShouldShowStageOverlay] = useState(false)
     const music_context__ref = useRef(new MusicContext())
     const tickMusicTimeBroadcast__cancelID = useRef(0)
+    const playground__div = useRef<HTMLDivElement>(null)
+    const playground_fields__div = useRef<HTMLDivElement>(null)
+    const playground_transform__ref = useRef({ translate_x: 0, translate_y: 0, scale: 1 })
+    const facility_registry__ref = useRef(new Map<AvailableFacility, HTMLElement>())
+    const show_stage_overlay__timeout_id = useRef(0)
     /** Timestamp when `tickMusicTimeBroadcast` started. */
     const start_time__timestamp = useRef(0)
     /** Timestamp of `tickMusicTimeBroadcast`'s last call. */
@@ -116,13 +123,26 @@ function Playground({ entering_status }: Playground_Param)
         if (selected_facility != null) { return }
 
         setSelectedFacility(event.detail)
-        setWhetherShouldShowStageOverlay(true)
+        window.clearTimeout(show_stage_overlay__timeout_id.current)
+        show_stage_overlay__timeout_id.current = window.setTimeout(
+            () => setWhetherShouldShowStageOverlay(true),
+            zoom_to_facility__anime__duration
+        )
     }
     const onReceiveFacilityExit = () =>
     {
+        window.clearTimeout(show_stage_overlay__timeout_id.current)
         setSelectedFacility(null)
         // Should wait for fade-out animation of stage overlay.
         window.setTimeout(() => setWhetherShouldShowStageOverlay(false), stage_overlay__fade_duration)
+    }
+    const onReceiveFacilityMount = (event: CustomEvent<{ name: AvailableFacility, element: HTMLElement }>) =>
+    {
+        facility_registry__ref.current.set(event.detail.name, event.detail.element)
+    }
+    const onReceiveFacilityUnmount = (event: CustomEvent<{ name: AvailableFacility }>) =>
+    {
+        facility_registry__ref.current.delete(event.detail.name)
     }
     const tickMusicTimeBroadcast = () =>
     {
@@ -160,6 +180,8 @@ function Playground({ entering_status }: Playground_Param)
     {
         document.addEventListener("facility_click", onReceiveFacilityClick)
         document.addEventListener("facility_exit", onReceiveFacilityExit)
+        document.addEventListener("facility_mount", onReceiveFacilityMount as EventListener)
+        document.addEventListener("facility_unmount", onReceiveFacilityUnmount as EventListener)
 
         // Music context.
         music_context__ref.current.bpm = 100
@@ -171,6 +193,9 @@ function Playground({ entering_status }: Playground_Param)
         {
             document.removeEventListener("facility_click", onReceiveFacilityClick)
             document.removeEventListener("facility_exit", onReceiveFacilityExit)
+            document.removeEventListener("facility_mount", onReceiveFacilityMount as EventListener)
+            document.removeEventListener("facility_unmount", onReceiveFacilityUnmount as EventListener)
+            window.clearTimeout(show_stage_overlay__timeout_id.current)
         }
     }, [])
 
@@ -209,10 +234,87 @@ function Playground({ entering_status }: Playground_Param)
         }
     }, [selected_facility])
 
-    return (<div id="playground">
-        {/* By default, playground should show fields (containing facilities). */}
-        <PlaygroundField__A music_context__ref={music_context__ref} />
-        <PlaygroundField__B music_context__ref={music_context__ref} />
+    // Move and zoom "into" the facility.
+    useEffect(() =>
+    {
+        // Note: facilities calculates the panning using position.
+        const playground_fields = playground_fields__div.current
+        if (playground_fields == null) { return }
+
+        const easing = (t: number) => 1 - Math.pow(1 - t, 3) // ease-out cubic
+        const default_transform = { translate_x: 0, translate_y: 0, scale: 1 }
+
+        const computeTargetTransform = () =>
+        {
+            if (selected_facility == null) { return default_transform }
+
+            const facility_element = facility_registry__ref.current.get(selected_facility)
+                ?? playground_fields.querySelector<HTMLElement>(`.Facility[data-facility-name="${selected_facility}"]`)
+            if (facility_element == null) { return default_transform }
+
+            const facility_rect = facility_element.getBoundingClientRect()
+            const target_scale = 1.4
+            const facility_center__x = facility_rect.x + facility_rect.width / 2
+            const facility_center__y = facility_rect.y + facility_rect.height / 2
+
+            return {
+                translate_x: window.innerWidth / 2 - (facility_center__x * target_scale),
+                translate_y: window.innerHeight / 2 - (facility_center__y * target_scale),
+                scale: target_scale
+            }
+        }
+
+        let animation_frame_id = 0
+        let animation_start__timestamp = performance.now()
+        let start_transform = playground_transform__ref.current
+        let target_transform = computeTargetTransform()
+
+        const tick = () =>
+        {
+            const now = performance.now()
+            const progress = Math.min(1, (now - animation_start__timestamp) / zoom_to_facility__anime__duration)
+            const eased_progress = easing(progress)
+
+            const translate_x = start_transform.translate_x
+                + (target_transform.translate_x - start_transform.translate_x) * eased_progress
+            const translate_y = start_transform.translate_y
+                + (target_transform.translate_y - start_transform.translate_y) * eased_progress
+            const scale = start_transform.scale
+                + (target_transform.scale - start_transform.scale) * eased_progress
+
+            playground_fields.style.transformOrigin = "0 0"
+            playground_fields.style.transform = `translate(${translate_x}px, ${translate_y}px) scale(${scale})`
+
+            playground_transform__ref.current = { translate_x, translate_y, scale }
+            if (progress < 1) { animation_frame_id = requestAnimationFrame(tick) }
+            else { animation_frame_id = 0 }
+        }
+
+        const restartAnimation = () =>
+        {
+            start_transform = playground_transform__ref.current
+            target_transform = computeTargetTransform()
+            animation_start__timestamp = performance.now()
+            if (animation_frame_id == 0) { tick() }
+        }
+
+        const onResize = () => restartAnimation()
+
+        tick()
+        window.addEventListener("resize", onResize)
+        return () =>
+        {
+            if (animation_frame_id != 0) { cancelAnimationFrame(animation_frame_id) }
+            window.removeEventListener("resize", onResize)
+        }
+    }, [selected_facility])
+
+    return (<div id="playground" ref={playground__div}>
+        <div id="playground_fields" ref={playground_fields__div}>
+            {/* By default, playground should show fields (containing facilities). */}
+            <PlaygroundField__A music_context__ref={music_context__ref} />
+            <PlaygroundField__B music_context__ref={music_context__ref} />
+        </div>
 
         {should_show__stage_overlay && <StageOverlay selected_facility={selected_facility} />}
     </div>)
@@ -231,7 +333,7 @@ type Playground_Param = {
  */
 function PlaygroundField__A({ music_context__ref }: PlaygroundField__A_Param)
 {
-    return (<div className="PlaygroudField">
+    return (<div id="playground_a" className="PlaygroudField">
         PLAYGROUND FIELD A
         <SingingTextFacility music_context__ref={music_context__ref} />
     </div>)
@@ -247,7 +349,7 @@ type PlaygroundField__A_Param = PlaygroudField_Param
  */
 function PlaygroundField__B({ music_context__ref }: PlaygroundField__B_Param)
 {
-    return (<div className="PlaygroudField">
+    return (<div id="playground_b" className="PlaygroudField">
         PLAYGROUND FIELD B
     </div>)
 }

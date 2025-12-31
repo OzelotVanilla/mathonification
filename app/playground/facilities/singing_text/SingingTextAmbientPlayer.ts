@@ -17,6 +17,20 @@ export class SingingTextAmbientPlayer extends AmbientPlayer
     private piano_voice: InstrumentVoice | null = null
     private flute_voice: InstrumentVoice | null = null
 
+    set master_panning(value: number)
+    {
+        if (this.piano_voice == null || this.flute_voice == null) { return }
+        this.piano_voice.raw_pan.value = value
+        this.flute_voice.raw_pan.value = value
+    }
+
+    set master_gain_value(value: number)
+    {
+        if (this.piano_voice == null || this.flute_voice == null) { return }
+        this.piano_voice.raw_gain.value = value
+        this.flute_voice.raw_gain.value = value
+    }
+
     constructor(music_context__ref: MusicContext)
     {
         super(music_context__ref)

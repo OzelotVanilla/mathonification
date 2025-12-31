@@ -2,7 +2,9 @@
 
 import "./Facility.scss"
 
-import React, { useEffect, useRef, useState } from "react"
+import { type AmbientPlayer } from "./AmbientPlayer"
+import React, { ComponentPropsWithoutRef, RefObject, useEffect, useRef, useState } from "react"
+import { mapLinearToLinear } from "@/utils/math"
 
 /**
  * The duration for the finishing animation.
@@ -30,10 +32,13 @@ export function Facility({
     loading_status_picture__url = "",
     is_loading,
     name,
-    children = (<></>)
+    ambient_player__ref,
+    children = (<></>),
+    ...rest_props
 }: Facility__Params)
 {
     const [animation_phase, setAnimationPhase] = useState<AnimationPhase>("loading")
+    const facility__div = useRef<HTMLDivElement>(null)
     const loading_phase__div = useRef<HTMLDivElement>(null)
     const ready_phase__div = useRef<HTMLDivElement>(null)
 
@@ -51,49 +56,78 @@ export function Facility({
 
     useEffect(() =>
     {
-        if (!is_loading)
-        {
-            setAnimationPhase("finishing")
+        if (!is_loading) { setAnimationPhase("finishing") }
+    }, [is_loading])
 
+    // Register this facility's DOM node for camera usage.
+    useEffect(() =>
+    {
+        if (facility__div.current == null) { return }
+
+        document.dispatchEvent(new CustomEvent("facility_mount", {
+            bubbles: true,
+            detail: { name, element: facility__div.current }
+        }))
+
+        return () =>
+        {
+            document.dispatchEvent(new CustomEvent("facility_unmount", {
+                bubbles: true,
+                detail: { name }
+            }))
+        }
+    }, [name])
+
+    // Performance when the loading is finished.
+    useEffect(() =>
+    {
+        if (animation_phase == "finishing")
+        {
             const animation_start__timestamp = performance.now()
-            const tickAnimation = () =>
+            /** For both animation and gain value. */
+            const tick = () =>
             {
                 const now = performance.now()
                 const progress = (now - animation_start__timestamp) / finishing__anime_duration
 
-                if (progress > 1)
+                if (progress > 1) // Finished.
                 {
                     setAnimationPhase("ready")
                 }
-                else
+                else // Changing.
                 {
                     if (loading_phase__div.current == null || ready_phase__div.current == null) { return }
 
                     loading_phase__div.current.style.setProperty("--progress", `${progress}`)
                     ready_phase__div.current.style.setProperty("--progress", `${progress}`)
 
-                    requestAnimationFrame(tickAnimation)
+                    if (ambient_player__ref != undefined && ambient_player__ref.current != null)
+                    {
+                        ambient_player__ref.current.master_gain_value = progress
+                    }
+
+                    requestAnimationFrame(tick)
                 }
             }
 
-            tickAnimation()
+            tick()
         }
-    }, [is_loading])
+    }, [animation_phase])
 
-    return <div className="Facility" onClick={onFacilityClick}>
+    return <div className="Facility" data-facility-name={name} onClick={onFacilityClick} ref={facility__div} {...rest_props}>
         {/* When it is loading, only show loading animation. */}
         {animation_phase == "loading"
             && <div className="onLoading">LOADING</div>}
 
         {/* When it is finishing, the finishing animation shows together with the ready sketch. */}
-        {animation_phase == "loading"
+        {animation_phase == "finishing"
             && <div className="onFinishing" ref={loading_phase__div}>FINISHING</div>}
-        {(animation_phase == "loading" || animation_phase == "ready")
+        {(animation_phase == "finishing" || animation_phase == "ready")
             && <div className="onReady" ref={ready_phase__div}>{children}</div>}
     </div>
 }
 
-export type Facility__Params = {
+export type Facility__Params = ComponentPropsWithoutRef<"div"> & {
     /**
      * The picture to show when the sketch is loading.
      */
@@ -103,6 +137,8 @@ export type Facility__Params = {
 
     /** Name of the wrapped facility. */
     name: AvailableFacility
+
+    ambient_player__ref?: RefObject<AmbientPlayer | null>
 
     children?: React.ReactNode
 }

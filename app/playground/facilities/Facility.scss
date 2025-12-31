@@ -5,7 +5,9 @@ $onReady__z_index: 10;
 {
     --progress: 0;
 
-    position: absolute;
+    position: relative;
+    width: fit-content;
+    height: fit-content;
 
     // Animation.
 
