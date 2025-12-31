@@ -15,9 +15,12 @@ export type SelectedFacility = AvailableFacility | null
 
 export type PlaygroundEnteringStatus = "loading" | "waiting" | "entering" | "entered"
 
-export const frequency_of_music_time_broadcast__per_measure = 8
-
 const playground_gate__entering_anime__duration = 1.5 * 1000
+
+/**
+ * Number of music-time broadcast ticks that occur within a single measure.
+ */
+const tickMusicTimeBroadcast__frequency = 8
 
 /**
  * This page contains two or more fields containing sketches.
@@ -101,6 +104,7 @@ function Playground({ entering_status }: Playground_Param)
     const music_context__ref = useRef(new MusicContext())
     const tickMusicTimeBroadcast__cancelID = useRef(0)
     const start_time__timestamp = useRef(0)
+    const last_broadcasted_beat__ref = useRef(-1)
 
     const onReceiveFacilityClick = (event: CustomEvent<AvailableFacility>) =>
     {
@@ -118,19 +122,31 @@ function Playground({ entering_status }: Playground_Param)
     }
     const tickMusicTimeBroadcast = () =>
     {
-        const length_of_one_measure__in_ms = 60 / music_context__ref.current.bpm * 1000
-        const ms_until_next_broadcast = length_of_one_measure__in_ms / frequency_of_music_time_broadcast__per_measure
-        const time_elapsed__in_ms = performance.now() - start_time__timestamp.current
-        const measure_count = Math.floor(time_elapsed__in_ms / length_of_one_measure__in_ms)
-        const beat_count = Math.floor(
-            time_elapsed__in_ms / length_of_one_measure__in_ms * frequency_of_music_time_broadcast__per_measure
-        ) / frequency_of_music_time_broadcast__per_measure % music_context__ref.current.n_beat_in_one_measure
+        const beat_duration__in_ms = 60 / music_context__ref.current.bpm * 1000
+        const measure_duration__in_ms = beat_duration__in_ms * music_context__ref.current.n_beat_in_one_measure
+        const tick_interval__in_ms = measure_duration__in_ms / tickMusicTimeBroadcast__frequency
+        const now = performance.now()
+        const time_elapsed__in_ms = now - start_time__timestamp.current
+        const beat_elapsed_count = Math.round(time_elapsed__in_ms / beat_duration__in_ms)
+        const n_beat_in_one_measure = music_context__ref.current.n_beat_in_one_measure
 
-        document.dispatchEvent(new CustomEvent<MusicTimeBroadcastEvent>("music_time_broadcast", {
-            detail: { measure: measure_count, beat: beat_count }
-        }))
+        if (beat_elapsed_count > last_broadcasted_beat__ref.current)
+        {
+            // Skip missed beats; only emit the current beat to avoid burst playback after pauses.
+            last_broadcasted_beat__ref.current = beat_elapsed_count
+            const measure_count = Math.floor(last_broadcasted_beat__ref.current / n_beat_in_one_measure)
+            const beat_in_measure = last_broadcasted_beat__ref.current % n_beat_in_one_measure
 
-        return (tickMusicTimeBroadcast__cancelID.current = window.setTimeout(tickMusicTimeBroadcast, ms_until_next_broadcast))
+            document.dispatchEvent(new CustomEvent<MusicTimeBroadcastEvent>("music_time_broadcast", {
+                detail: { measure: measure_count, beat: beat_in_measure }
+            }))
+        }
+
+        const ticks_elapsed__count = Math.floor(time_elapsed__in_ms / tick_interval__in_ms)
+        const next_target_time__in_ms = start_time__timestamp.current
+            + (ticks_elapsed__count + 1) * tick_interval__in_ms
+        const delay_until_next = Math.max(0, next_target_time__in_ms - performance.now())
+        return (tickMusicTimeBroadcast__cancelID.current = window.setTimeout(tickMusicTimeBroadcast, delay_until_next))
     }
 
 
@@ -143,17 +159,30 @@ function Playground({ entering_status }: Playground_Param)
         // Music context.
         music_context__ref.current.bpm = 100
         music_context__ref.current.base_note = 60
-
-        // Music time broadcast.
-        tickMusicTimeBroadcast__cancelID.current = window.setTimeout(tickMusicTimeBroadcast)
+        music_context__ref.current.n_beat_in_one_measure = 4
+        last_broadcasted_beat__ref.current = -1
 
         return () =>
         {
             document.removeEventListener("facility_click", onReceiveFacilityClick)
             document.removeEventListener("facility_exit", onReceiveFacilityExit)
-            window.clearTimeout(tickMusicTimeBroadcast__cancelID.current)
         }
     }, [])
+
+    // Music time broadcast.
+    useEffect(() =>
+    {
+        if (entering_status == "entered")
+        {
+            start_time__timestamp.current = performance.now()
+            tickMusicTimeBroadcast__cancelID.current = window.setTimeout(tickMusicTimeBroadcast)
+        }
+
+        return () =>
+        {
+            window.clearTimeout(tickMusicTimeBroadcast__cancelID.current)
+        }
+    }, [entering_status])
 
     return (<div id="playground">
         {/* By default, playground should show fields (containing facilities). */}
