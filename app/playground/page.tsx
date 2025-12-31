@@ -15,6 +15,7 @@ export type SelectedFacility = AvailableFacility | null
 
 export type PlaygroundEnteringStatus = "loading" | "waiting" | "entering" | "entered"
 
+/** In milliseconds. */
 const playground_gate__entering_anime__duration = 1.5 * 1000
 
 /**
@@ -58,7 +59,7 @@ function PlaygroundGate({ entering_status, setEnteringStatus }: PlaygroundGate_P
 {
     const [is_loading_resource, setWhetherLoadingResource] = useState(true)
 
-    const onGateClick = () =>
+    const onGateClick = async () =>
     {
         setEnteringStatus("entering")
         SoundManager.resume()
@@ -103,7 +104,10 @@ function Playground({ entering_status }: Playground_Param)
     const [should_show__stage_overlay, setWhetherShouldShowStageOverlay] = useState(false)
     const music_context__ref = useRef(new MusicContext())
     const tickMusicTimeBroadcast__cancelID = useRef(0)
+    /** Timestamp when `tickMusicTimeBroadcast` started. */
     const start_time__timestamp = useRef(0)
+    /** Timestamp of `tickMusicTimeBroadcast`'s last call. */
+    const tickMusicTimeBroadcast__timestamp = useRef(0)
     const last_broadcasted_beat__ref = useRef(-1)
 
     const onReceiveFacilityClick = (event: CustomEvent<AvailableFacility>) =>
@@ -130,6 +134,8 @@ function Playground({ entering_status }: Playground_Param)
         const beat_elapsed_count = Math.round(time_elapsed__in_ms / beat_duration__in_ms)
         const n_beat_in_one_measure = music_context__ref.current.n_beat_in_one_measure
 
+        tickMusicTimeBroadcast__timestamp.current = now
+
         if (beat_elapsed_count > last_broadcasted_beat__ref.current)
         {
             // Skip missed beats; only emit the current beat to avoid burst playback after pauses.
@@ -148,7 +154,6 @@ function Playground({ entering_status }: Playground_Param)
         const delay_until_next = Math.max(0, next_target_time__in_ms - performance.now())
         return (tickMusicTimeBroadcast__cancelID.current = window.setTimeout(tickMusicTimeBroadcast, delay_until_next))
     }
-
 
     // Init.
     useEffect(() =>
@@ -169,7 +174,7 @@ function Playground({ entering_status }: Playground_Param)
         }
     }, [])
 
-    // Music time broadcast.
+    // Music time broadcast init.
     useEffect(() =>
     {
         if (entering_status == "entered")
@@ -183,6 +188,26 @@ function Playground({ entering_status }: Playground_Param)
             window.clearTimeout(tickMusicTimeBroadcast__cancelID.current)
         }
     }, [entering_status])
+
+    // Music time broadcast control.
+    useEffect(() =>
+    {
+        // Resume.
+        if (selected_facility == null)
+        {
+            // Calculate the delta to restore the count of measure and beat.
+            const now = performance.now()
+            const elapsed = tickMusicTimeBroadcast__timestamp.current - start_time__timestamp.current
+            start_time__timestamp.current = now - elapsed
+            // Then start as soon as possible.
+            tickMusicTimeBroadcast__cancelID.current = window.setTimeout(tickMusicTimeBroadcast)
+        }
+        // Or pause.
+        else
+        {
+            window.clearTimeout(tickMusicTimeBroadcast__cancelID.current)
+        }
+    }, [selected_facility])
 
     return (<div id="playground">
         {/* By default, playground should show fields (containing facilities). */}
