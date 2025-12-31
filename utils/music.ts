@@ -1,5 +1,9 @@
 import { just_intonation_ratio_array } from "./constants"
 
+
+/**
+ * Assume signature is `4 / 4` currently.
+ */
 export class MusicContext
 {
     /**
@@ -28,6 +32,9 @@ export class MusicContext
     }
 
     bpm: number = 120
+
+    // TODO: not implemented
+    n_beat_in_one_measure: number = 4
 
     music_scale: MusicScale = MusicScale.major
 

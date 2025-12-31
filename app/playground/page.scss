@@ -1,0 +1,168 @@
+$playground_gate__z_index: 20;
+$playground__z_index: 10;
+$stage_overlay__z_index: 30;
+
+#playground_page
+{
+    width: 100%;
+    height: 100%;
+    position: absolute;
+
+    #playground_gate
+    {
+        width: 100%;
+        height: 100%;
+        top: 0;
+        left: 0;
+        position: absolute;
+        z-index: $playground_gate__z_index;
+    }
+
+    #playground
+    {
+        width: 100%;
+        height: 100%;
+        top: 0;
+        left: 0;
+        position: absolute;
+        z-index: $playground__z_index;
+    }
+
+    #stage_overlay
+    {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        z-index: $stage_overlay__z_index;
+    }
+}
+
+#playground_gate
+{
+    $gate_pulse_duration: 1.2s;
+    $gate_pulse_ease: ease-in-out;
+
+    &.IsLoading
+    {
+        animation: gate_pulse $gate_pulse_duration $gate_pulse_ease;
+        animation-iteration-count: infinite;
+        animation-direction: alternate;
+    }
+
+    &.LoadFinished
+    {
+        animation: gate_pulse $gate_pulse_duration $gate_pulse_ease;
+
+        // By ChatGPT. This helps the animation keeps smooth.
+        animation-iteration-count: 1;
+        animation-direction: normal;
+        animation-fill-mode: forwards;
+    }
+
+    &.PlayEnteringAnime
+    {
+        animation: fade_out 1.5s ease-in-out;
+        animation-fill-mode: forwards;
+    }
+
+    /** From ChatGPT. */
+    @keyframes gate_pulse
+    {
+        from
+        {
+            opacity: 0.4;
+        }
+
+        to
+        {
+            opacity: 1;
+        }
+    }
+
+    @keyframes fade_out
+    {
+        from
+        {
+            opacity: 1;
+        }
+
+        to
+        {
+            opacity: 0;
+        }
+    }
+}
+
+#playground
+{
+    display: flex;
+
+    @media (orientation: portrait)
+    {
+        flex-direction: column;
+    }
+
+    @media (orientation: horizontal)
+    {
+        flex-direction: row;
+    }
+
+    .PlaygroudField
+    {
+        flex: 1;
+        max-width: 48vmax;
+    }
+}
+
+#stage_overlay
+{
+    &.FadingIn
+    {
+        animation: fade_in 1.5s ease-in-out;
+        animation-fill-mode: forwards;
+    }
+
+    &.FadingOut
+    {
+        animation: fade_out 1.5s ease-in-out;
+        animation-fill-mode: forwards;
+    }
+
+    @keyframes fade_in
+    {
+        from
+        {
+            opacity: 0;
+        }
+
+        to
+        {
+            opacity: 1;
+        }
+    }
+
+    @keyframes fade_out
+    {
+        from
+        {
+            opacity: 1;
+        }
+
+        to
+        {
+            opacity: 0;
+        }
+    }
+
+    #stage_overlay__close_button
+    {
+        top: 1vmin;
+        right: 1vmin;
+    }
+
+    #stage_overlay__content
+    {
+        width: 100%;
+        height: 100%;
+    }
+}

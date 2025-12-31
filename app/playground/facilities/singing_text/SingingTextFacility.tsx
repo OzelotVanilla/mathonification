@@ -1,0 +1,46 @@
+"use client"
+
+import { RefObject, useEffect, useRef, useState } from "react";
+import { AvailableFacility, Facility } from "../Facility";
+import { SingingTextAmbientPlayer } from "./SingingTextAmbientPlayer";
+import { MusicContext } from "@/utils/music";
+import { MusicTimeBroadcastEvent } from "../facility_event.extend.interface";
+
+export function SingingTextFacility({ music_context__ref }: SingingTextFacility_Param)
+{
+    const [is_loading, setWhetherLoading] = useState(true)
+    const ambient_player__ref = useRef(new SingingTextAmbientPlayer(music_context__ref.current))
+
+    /** As non-focused object, play ambient BGM. */
+    const onReceivingMusicTimeBroadcast = (event: CustomEvent<MusicTimeBroadcastEvent>) =>
+    {
+        const { measure, beat } = event.detail
+        ambient_player__ref.current.update(measure, beat)
+    }
+
+    // This function is only responsible for init the facility (thumbnail),
+    //  the full-screen interaction should be init-ed in `stage_overlay`.
+    useEffect(() =>
+    {
+        if (music_context__ref == null) { return }
+        ambient_player__ref.current.music_context__ref = music_context__ref.current
+
+        document.addEventListener("music_time_broadcast", onReceivingMusicTimeBroadcast)
+
+        setWhetherLoading(false)
+
+        return () =>
+        {
+            document.removeEventListener("music_time_broadcast", onReceivingMusicTimeBroadcast)
+        }
+    }, [])
+
+    return (<Facility is_loading={is_loading} name={AvailableFacility.singing_text}>
+
+    </Facility>)
+}
+
+
+type SingingTextFacility_Param = {
+    music_context__ref: RefObject<MusicContext>
+}

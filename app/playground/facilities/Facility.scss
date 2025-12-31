@@ -1,0 +1,22 @@
+$onFinishing__z_index: 20;
+$onReady__z_index: 10;
+
+.Facility
+{
+    --progress: 0;
+
+    position: absolute;
+
+    // Animation.
+
+    // Z-index
+    .onFinishing
+    {
+        z-index: $onFinishing__z_index;
+    }
+
+    .onReady
+    {
+        z-index: $onReady__z_index;
+    }
+}

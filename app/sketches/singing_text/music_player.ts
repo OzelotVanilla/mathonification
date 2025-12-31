@@ -37,10 +37,13 @@ export class SyntaxPlayer
         this.tick(music_context, tree_walker)
     }
 
-    stopPlaying()
+    /**
+     * @param immediately Whether the sounding piano should be mute immediately.
+     */
+    stopPlaying(immediately: boolean = true)
     {
         this.should_continue_play = false
-        SoundManager.stop()
+        if (immediately) { SoundManager.stop() }
         for (const id of this.tick__setTimeout_ids) { clearTimeout(id) }
     }
 
@@ -109,7 +112,6 @@ export class SyntaxPlayer
 
             this.tick__setTimeout_ids.push(window.setTimeout(() => this.tick(music_context, tree_walker), notes_length_in_milliseconds))
         }
-
     }
 }
 
@@ -118,6 +120,9 @@ function getNoteLength(from_word: string)
     return Tone.Time(`${from_word.length}n`)
 }
 
+/**
+ * Get a note for non-conjunction words.
+ */
 function getNoteOfOrdinary(music_context: MusicContext, word: string)
 {
     const scale = music_context.getScale()
@@ -130,6 +135,9 @@ function getNoteOfOrdinary(music_context: MusicContext, word: string)
         .slice(0, 3)
 }
 
+/**
+ * Get a chord from conjuction.
+ */
 function getNoteOfConjunction(music_context: MusicContext, span_element: HTMLSpanElement): number[]
 {
     // TODO: Bad algorithm.
