@@ -1,12 +1,13 @@
 "use client"
 
-import { getContext as getToneContext, Sampler, loaded as onToneLoaded, Compressor, ToneAudioNode, Vibrato, Limiter, Meter } from "tone";
+import { getContext as getToneContext, Sampler, loaded as onToneLoaded, start as startTone, Reverb } from "tone";
+import { Compressor, ToneAudioNode, Vibrato, Limiter, Meter } from "tone";
 import { isClientEnvironment } from "./env";
 import { midi_note_to_name } from "./constants";
 import { Time } from "tone/build/esm/core/type/Units";
 import { SoundEffectChainManager } from "./SoundEffectChainManager";
 
-type AvailableSamplerName = "piano"
+type AvailableSamplerName = "piano" | "xylophone" | "flute"
 
 type EffectName = "vibrato" | string
 
@@ -28,6 +29,13 @@ const default_playNote_param = {
 } satisfies Param_playNote
 
 /**
+ * Will be updated when the existed assets is replaced by something else.
+ */
+const asset_version = "v12292025"
+
+/**
+ * The `init` method should be called by a user gesture.
+ * 
  * Connect graph:
  * 
  * ```txt
@@ -55,11 +63,22 @@ export class SoundManager
     private static meter: Meter
 
     /**
+     * A promise to indicate sampling file preload status.
+     * 
+     * Will NOT be set to `null` even when dispose.
+     */
+    private static preload_promise: Promise<any> | null = null
+
+    /**
      * A promise to indicate init status.
      * 
      * Will be set to `null` when dispose.
      */
     private static init_promise: Promise<void> | null = null
+
+    public static get preload_finished() { return this.preload_promise }
+
+    public static get init_finished() { return this.init_promise }
 
     /**
      * All sound node should connect to this.
@@ -69,12 +88,24 @@ export class SoundManager
     /**
      * For effect.
      */
-    static get output() { return this.master_input }
+    static get effect_output() { return this.master_input }
 
-    private static piano__sample_urls = Object.fromEntries(new Map(
+    private static readonly piano__sample_urls = Object.fromEntries(new Map(
         [...new Array(81)] // From `C1` to `G7` (this sample only has this range)
             .map((_, index) => midi_note_to_name[index + 24]!)
-            .map(s => [s, `${s.replace("#", "s")}.mp3`])
+            .map(s => [s, `${s.replace("#", "s")}.mp3?v=${asset_version}`])
+    ))
+
+    private static readonly xylophone__sample_urls = Object.fromEntries(new Map(
+        [...new Array(88)] // From `A0` to `C8` (this sample only has this range)
+            .map((_, index) => midi_note_to_name[index + 21]!)
+            .map(s => [s, `${s.replace("#", "s")}.mp3?v=${asset_version}`])
+    ))
+
+    private static readonly flute__sample_urls = Object.fromEntries(new Map(
+        [...new Array(88)] // From `A0` to `C8` (this sample only has this range)
+            .map((_, index) => midi_note_to_name[index + 21]!)
+            .map(s => [s, `${s.replace("#", "s")}.mp3?v=${asset_version}`])
     ))
 
     static get available_instrument() { return [...this.tonejs_instruments.keys()] }
@@ -82,13 +113,15 @@ export class SoundManager
     static {
         if (isClientEnvironment())
         {
-            onToneLoaded().then(() => this.init())
+            // Pre-load the resource, let the fetch happens later.
+            window.setTimeout(() => this.preloadSamplingFile(), 1000)
         }
     }
 
     public static async resume()
     {
-        return await getToneContext().resume()
+        await startTone()
+        return await this.init()
     }
 
     /**
@@ -177,17 +210,59 @@ export class SoundManager
         return midi_note_to_name[midi_note_num]!
     }
 
+    public static async preloadSamplingFile(abort_signal?: AbortSignal)
+    {
+        if (this.preload_promise != null) { return this.preload_promise }
+
+        function getFetchPromises(instrument_name: AvailableSamplerName, urls_object: { [key_name: string]: string })
+        {
+            caches.open
+            return Object.values(urls_object).map(
+                url => requestIdleCallback(() => fetch(
+                    `instrument_sample/${instrument_name}/${url}`,
+                    { cache: "force-cache", signal: abort_signal }
+                ).then(
+                    response =>
+                    {
+                        if (!response.ok)
+                        {
+                            SoundManager.preload_promise = null
+                            throw Error(`URL "${response.url}" not fetched.`)
+                        }
+                        else
+                        {
+                            return response.arrayBuffer()
+                        }
+                    }
+                )
+                ))
+        }
+
+        this.preload_promise = Promise.all([
+            getFetchPromises("piano", this.piano__sample_urls),
+            getFetchPromises("xylophone", this.xylophone__sample_urls),
+            getFetchPromises("flute", this.flute__sample_urls),
+        ].flat()).catch(
+            err => { SoundManager.preload_promise = null; throw err }
+        )
+
+        await this.preload_promise
+
+        return this.preload_promise
+    }
+
     /**
      * Init the sound manager.
+     * Should be called after user gesture.
      * 
      * This method returns the `init_promise` as init status,
      *  and avoid init multiple times.
      */
-    private static async init()
+    public static async init()
     {
         if (this.init_promise != null) { return this.init_promise }
 
-        this.init_promise = new Promise<void>(async (resolve) =>
+        this.init_promise = (async (resolve) =>
         {
             // Final clipping-avoiding solution.
             this.final_compressor = new Compressor({
@@ -198,26 +273,26 @@ export class SoundManager
             })
             this.final_limiter = new Limiter(-1)
             this.meter = new Meter()
+            // Should be defined here, since `sound_effect_chain_manager` need to refer to it.
+            this.master_input = this.final_compressor
 
             // Add pre-defined effect chain.
-            this.sound_effect_chain_manager.add("none", [])
-            this.sound_effect_chain_manager.add("vibrato", [
-                new Vibrato(5, 0.2)
-            ])
+            this.sound_effect_chain_manager.add("none", [], this.effect_output)
 
             // Load pre-defined sampler.
             this.loadPianoSampler()
+            this.loadXylophoneSampler()
+            this.loadFluteSampler()
 
             // Connect graph creation.
-            this.master_input = this.final_compressor
             this.final_compressor.connect(this.final_limiter)
             this.final_limiter.toDestination()
             this.final_limiter.connect(this.meter)
 
             await onToneLoaded()
-
-            resolve()
-        })
+        })().catch(
+            err => { this.init_promise = null; throw err }
+        )
 
         return this.init_promise
     }
@@ -226,12 +301,23 @@ export class SoundManager
     {
         this.addPianoSampler("piano", /* skip_when_exist: */ true)
 
-        let piano_vibrato = this.addPianoSampler("piano__vibrato")
-        this.sound_effect_chain_manager.add("piano__vibrato", [
-            new Vibrato(5, 0.2)
-        ], this.effect_output)
-        let effect_chain = this.sound_effect_chain_manager.get("piano__vibrato")!
-        if (effect_chain.length > 0) { piano_vibrato.connect(effect_chain[0]) }
+        {
+            let piano_vibrato = this.addPianoSampler("piano__vibrato")
+            this.sound_effect_chain_manager.add("piano__vibrato", [
+                new Vibrato(5, 0.2)
+            ], this.effect_output)
+            let effect_chain = this.sound_effect_chain_manager.get("piano__vibrato")!
+            if (effect_chain.length > 0) { piano_vibrato.connect(effect_chain[0]) }
+        }
+
+        {
+            let piano_reverb = this.addPianoSampler("piano__reverb")
+            this.sound_effect_chain_manager.add("piano__reverb", [
+                new Reverb(0.5)
+            ], this.effect_output)
+            let effect_chain = this.sound_effect_chain_manager.get("piano__reverb")!
+            if (effect_chain.length > 0) { piano_reverb.connect(effect_chain[0]) }
+        }
     }
 
     private static addPianoSampler(name: AvailableInstrumentName, skip_when_exist: boolean = false)
@@ -255,6 +341,30 @@ export class SoundManager
         this.tonejs_instruments.set(name, instrument)
 
         return instrument
+    }
+
+    private static loadXylophoneSampler()
+    {
+        const instrument = new Sampler({
+            urls: this.xylophone__sample_urls,
+            baseUrl: "/instrument_sample/xylophone/",
+            release: 1,
+            volume: -12
+        }).connect(this.master_input)
+
+        this.tonejs_instruments.set("xylophone", instrument)
+    }
+
+    private static loadFluteSampler()
+    {
+        const instrument = new Sampler({
+            urls: this.flute__sample_urls,
+            baseUrl: "/instrument_sample/flute/",
+            release: 1,
+            volume: -12
+        }).connect(this.master_input)
+
+        this.tonejs_instruments.set("flute", instrument)
     }
 
     private static removeInstrument(name: AvailableInstrumentName)

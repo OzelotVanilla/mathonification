@@ -7,6 +7,7 @@ import { WebGLRenderer } from "three"
 import { OrbitControls } from "three/examples/jsm/Addons.js"
 import { SlopeChangingGlobe } from "./SlopeChangingGlobe"
 import { CollisionWorld } from "./CollisionWorld"
+import { SoundManager } from "@/utils/SoundManager"
 
 
 export default function SlopeGlobePage()
