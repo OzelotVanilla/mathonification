@@ -28,4 +28,6 @@ export abstract class AmbientPlayer
     {
         this.music_context__ref = music_context__ref
     }
+
+    dispose(): void { }
 }

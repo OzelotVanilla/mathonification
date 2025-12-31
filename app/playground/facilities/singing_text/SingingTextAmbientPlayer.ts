@@ -1,6 +1,7 @@
-import { SoundManager } from "@/utils/SoundManager";
+import { InstrumentVoice, SoundManager } from "@/utils/SoundManager";
 import { AmbientPlayer } from "../AmbientPlayer";
 import { midi_note_to_name } from "@/utils/constants";
+import { type MusicContext } from "@/utils/music";
 
 
 /**
@@ -12,6 +13,33 @@ export class SingingTextAmbientPlayer extends AmbientPlayer
         [0, 7], [2, 9], [-3, 4]
     ]
 
+    // Will be init-ed in `this.initVoice`.
+    private piano_voice: InstrumentVoice | null = null
+    private flute_voice: InstrumentVoice | null = null
+
+    constructor(music_context__ref: MusicContext)
+    {
+        super(music_context__ref)
+        this.initVoice()
+    }
+
+    private initVoice()
+    {
+        if (this.piano_voice == null)
+        {
+            this.piano_voice = SoundManager.createInstrumentVoice({
+                instrument_name: "piano",
+                effect_chain_name: "piano__reverb"
+            })
+        }
+        if (this.flute_voice == null)
+        {
+            this.flute_voice = SoundManager.createInstrumentVoice({
+                instrument_name: "flute"
+            })
+        }
+    }
+
     update(measure: number, beat: number): void
     {
         const offset_array_len = SingingTextAmbientPlayer.keys_offset.length
@@ -22,9 +50,9 @@ export class SingingTextAmbientPlayer extends AmbientPlayer
             const note_num = SingingTextAmbientPlayer.keys_offset[measure % offset_array_len][0]
                 + this.music_context__ref.base_note
             // console.log(`${measure}:${beat}:piano: ${midi_note_to_name[note_num]}`)
-            SoundManager.playNote(
+            this.piano_voice?.triggerAttackRelease(
                 note_num,
-                { instrument_name: "piano", effect_chain_name: "reverb", duration: 3.5 * one_beat_duration__in_s }
+                3.5 * one_beat_duration__in_s
             )
         }
         else if (beat == 2)
@@ -32,10 +60,18 @@ export class SingingTextAmbientPlayer extends AmbientPlayer
             const note_num = SingingTextAmbientPlayer.keys_offset[measure % offset_array_len][1]
                 + this.music_context__ref.base_note
             // console.log(`${measure}:${beat}:flute: ${midi_note_to_name[note_num]}`)
-            SoundManager.playNote(
+            this.flute_voice?.triggerAttackRelease(
                 SingingTextAmbientPlayer.keys_offset[measure % offset_array_len][1] + this.music_context__ref.base_note,
-                { instrument_name: "flute", duration: 3 * one_beat_duration__in_s }
+                3 * one_beat_duration__in_s
             )
         }
+    }
+
+    dispose(): void
+    {
+        this.piano_voice?.dispose()
+        this.piano_voice = null
+        this.flute_voice?.dispose()
+        this.flute_voice = null
     }
 }

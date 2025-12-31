@@ -1,7 +1,7 @@
 "use client"
 
 import { getContext as getToneContext, Sampler, loaded as onToneLoaded, start as startTone, Reverb } from "tone";
-import { Compressor, ToneAudioNode, Vibrato, Limiter, Meter } from "tone";
+import { Compressor, ToneAudioNode, Vibrato, Limiter, Meter, Gain, Panner } from "tone";
 import { isClientEnvironment } from "./env";
 import { midi_note_to_name } from "./constants";
 import { Time } from "tone/build/esm/core/type/Units";
@@ -20,6 +20,29 @@ type Param_playNote = {
     duration?: Time
     /** Which user-defined effect chain to use. `undefined` means do not use effect. */
     effect_chain_name?: string | undefined
+}
+
+type Param_createInstrumentVoice = {
+    instrument_name: AvailableSamplerName
+    pan?: number
+    gain?: number
+    effect_chain_name?: string
+}
+
+export type InstrumentVoice = {
+    id: string
+    triggerAttackRelease(note: string | number | string[] | number[], duration?: Time, time?: number): void
+    setPan(value: number): void
+    setGain(value: number): void
+    raw_gain: Gain["gain"]
+    raw_pan: Panner["pan"]
+    dispose(): void
+}
+
+type InstrumentVoiceNodes = {
+    sampler: Sampler
+    gain_node: Gain
+    panner_node: Panner
 }
 
 const default_playNote_param = {
@@ -45,6 +68,8 @@ const asset_version = "v12292025"
 export class SoundManager
 {
     private static tonejs_instruments: Map<AvailableInstrumentName, AvailableInstrument> = new Map();
+    private static custom_voice_id__counter: number = 0
+    private static custom_voices: Map<string, InstrumentVoiceNodes> = new Map()
 
     /**
      * Chain of sound effect.
@@ -74,11 +99,20 @@ export class SoundManager
      * 
      * Will be set to `null` when dispose.
      */
-    private static init_promise: Promise<void> | null = null
+    private static init_promise: Promise<any> | null = null
+
+    /**
+     * A promise to indicate resume status.
+     * 
+     * Will be set to `null` when dispose.
+     */
+    private static resume_promise: Promise<any> | null = null
 
     public static get preload_finished() { return this.preload_promise }
 
     public static get init_finished() { return this.init_promise }
+
+    public static get resume_finished() { return this.resume_promise }
 
     /**
      * All sound node should connect to this.
@@ -120,8 +154,15 @@ export class SoundManager
 
     public static async resume()
     {
-        await startTone()
-        return await this.init()
+        if (this.resume_promise != null) { return this.resume_promise }
+
+        this.resume_promise = (async () =>
+        {
+            await startTone()
+            await this.init()
+        })()
+
+        return this.resume_promise
     }
 
     /**
@@ -141,6 +182,7 @@ export class SoundManager
         this.init_promise = null
         this.tonejs_instruments.values().forEach(v => v.dispose())
         this.tonejs_instruments.clear()
+        this.custom_voices.forEach((_, id) => this.disposeInstrumentVoice(id))
         this.sound_effect_chain_manager.dispose()
     }
 
@@ -175,6 +217,74 @@ export class SoundManager
         }
 
         instrument?.triggerAttackRelease(keys_to_play, duration, getToneContext().currentTime)
+    }
+
+    public static createInstrumentVoice(param: Param_createInstrumentVoice): InstrumentVoice
+    {
+        if (this.init_promise == null) { throw Error("SoundManager not initialized. Call resume() first.") }
+
+        const { instrument_name, pan = 0, gain = 1, effect_chain_name } = param
+        const sampler = this.createSamplerInstance(instrument_name)
+        const gain_node = new Gain(gain)
+        const panner_node = new Panner(pan)
+        let current_node: ToneAudioNode = sampler
+
+        current_node.connect(gain_node)
+        current_node = gain_node
+        current_node.connect(panner_node)
+        current_node = panner_node
+
+        if (effect_chain_name != undefined && this.sound_effect_chain_manager.has(effect_chain_name))
+        {
+            const effect_chain = this.sound_effect_chain_manager.get(effect_chain_name)!
+            if (effect_chain.length > 0)
+            {
+                current_node.connect(effect_chain[0])
+            }
+            else
+            {
+                current_node.connect(this.master_input)
+            }
+        }
+        else
+        {
+            current_node.connect(this.master_input)
+        }
+
+        const voice_id = `voice_${this.custom_voice_id__counter++}`
+        this.custom_voices.set(voice_id, {
+            sampler,
+            gain_node,
+            panner_node
+        })
+
+        return {
+            id: voice_id,
+            triggerAttackRelease: (note: string | number | string[] | number[], duration: Time, time) =>
+            {
+                const keys_to_play = this.convertInputNotesToKeyNames(note)
+                sampler.triggerAttackRelease(keys_to_play, duration, time ?? getToneContext().currentTime)
+            },
+            setPan: (value) => { panner_node.pan.value = value },
+            setGain: (value) => { gain_node.gain.value = value },
+            get raw_gain() { return gain_node.gain },
+            get raw_pan() { return panner_node.pan },
+            dispose: () => this.disposeInstrumentVoice(voice_id)
+        } satisfies InstrumentVoice
+    }
+
+    public static disposeInstrumentVoice(voice_id: string)
+    {
+        const voice_nodes = this.custom_voices.get(voice_id)
+        if (voice_nodes == undefined) { return }
+
+        voice_nodes.sampler.disconnect()
+        voice_nodes.sampler.dispose()
+        voice_nodes.gain_node.disconnect()
+        voice_nodes.gain_node.dispose()
+        voice_nodes.panner_node.disconnect()
+        voice_nodes.panner_node.dispose()
+        this.custom_voices.delete(voice_id)
     }
 
     public static convertInputNotesToKeyNames(value: string | number | string[] | number[]): string[]
@@ -246,8 +356,6 @@ export class SoundManager
             err => { SoundManager.preload_promise = null; throw err }
         )
 
-        await this.preload_promise
-
         return this.preload_promise
     }
 
@@ -262,7 +370,7 @@ export class SoundManager
     {
         if (this.init_promise != null) { return this.init_promise }
 
-        this.init_promise = (async (resolve) =>
+        this.init_promise = (async () =>
         {
             // Final clipping-avoiding solution.
             this.final_compressor = new Compressor({
@@ -320,6 +428,39 @@ export class SoundManager
         }
     }
 
+    private static createSamplerInstance(name: AvailableSamplerName): Sampler
+    {
+        switch (name)
+        {
+            case "piano":
+                return new Sampler({
+                    urls: this.piano__sample_urls,
+                    baseUrl: "/instrument_sample/piano/",
+                    release: 1,
+                    volume: -12
+                })
+
+            case "xylophone":
+                return new Sampler({
+                    urls: this.xylophone__sample_urls,
+                    baseUrl: "/instrument_sample/xylophone/",
+                    release: 1,
+                    volume: -12
+                })
+
+            case "flute":
+                return new Sampler({
+                    urls: this.flute__sample_urls,
+                    baseUrl: "/instrument_sample/flute/",
+                    release: 1,
+                    volume: -12
+                })
+
+            default:
+                throw Error(`Instrument "${name}" not supported.`)
+        }
+    }
+
     private static addPianoSampler(name: AvailableInstrumentName, skip_when_exist: boolean = false)
     {
         if (this.tonejs_instruments.has(name) && !skip_when_exist)
@@ -331,12 +472,7 @@ export class SoundManager
             )
         }
 
-        const instrument = new Sampler({
-            urls: this.piano__sample_urls,
-            baseUrl: "/instrument_sample/piano/",
-            release: 1,
-            volume: -12
-        }).connect(this.master_input)
+        const instrument = this.createSamplerInstance("piano").connect(this.master_input)
 
         this.tonejs_instruments.set(name, instrument)
 
@@ -345,24 +481,14 @@ export class SoundManager
 
     private static loadXylophoneSampler()
     {
-        const instrument = new Sampler({
-            urls: this.xylophone__sample_urls,
-            baseUrl: "/instrument_sample/xylophone/",
-            release: 1,
-            volume: -12
-        }).connect(this.master_input)
+        const instrument = this.createSamplerInstance("xylophone").connect(this.master_input)
 
         this.tonejs_instruments.set("xylophone", instrument)
     }
 
     private static loadFluteSampler()
     {
-        const instrument = new Sampler({
-            urls: this.flute__sample_urls,
-            baseUrl: "/instrument_sample/flute/",
-            release: 1,
-            volume: -12
-        }).connect(this.master_input)
+        const instrument = this.createSamplerInstance("flute").connect(this.master_input)
 
         this.tonejs_instruments.set("flute", instrument)
     }
