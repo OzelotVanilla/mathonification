@@ -20,6 +20,16 @@ export abstract class AmbientPlayer
     music_context__ref: MusicContext
 
     /**
+     * Control the desired panning.
+     */
+    abstract set master_panning(value: number)
+
+    /**
+     * Control the desired gain value.
+     */
+    abstract set master_gain_value(value: number)
+
+    /**
      * Receive latest timing information.
      */
     abstract update(measure: number, beat: number): void

@@ -43,8 +43,9 @@ export function SingingTextFacility({ music_context__ref }: SingingTextFacility_
         }
     }, [])
 
-    return (<Facility is_loading={is_loading} name={AvailableFacility.singing_text}>
-
+    return (<Facility name={AvailableFacility.singing_text} style={{ top: "30%", left: "60%" }}
+        is_loading={is_loading} ambient_player__ref={ambient_player__ref}>
+        <span >SINGING TEXT FACILITY</span>
     </Facility>)
 }
 
