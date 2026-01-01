@@ -9,6 +9,7 @@ import { AvailableFacility } from "./facilities/Facility"
 import { SingingTextFacility } from "./facilities/singing_text/SingingTextFacility"
 import { MusicTimeBroadcastEvent } from "./facilities/facility_event.extend.interface"
 import { StageOverlay, stage_overlay__fade_duration } from "./stage_overlay/StageOverlay"
+import { AmbientPlayer } from "./facilities/AmbientPlayer"
 
 
 export type SelectedFacility = AvailableFacility | null
@@ -128,6 +129,7 @@ function Playground({ entering_status }: Playground_Param)
             () => setWhetherShouldShowStageOverlay(true),
             zoom_to_facility__anime__duration
         )
+        AmbientPlayer.fadeOutGain(zoom_to_facility__anime__duration)
     }
     const onReceiveFacilityExit = () =>
     {
@@ -135,6 +137,7 @@ function Playground({ entering_status }: Playground_Param)
         setSelectedFacility(null)
         // Should wait for fade-out animation of stage overlay.
         window.setTimeout(() => setWhetherShouldShowStageOverlay(false), stage_overlay__fade_duration)
+        AmbientPlayer.fadeInGain(stage_overlay__fade_duration)
     }
     const onReceiveFacilityMount = (event: CustomEvent<{ name: AvailableFacility, element: HTMLElement }>) =>
     {

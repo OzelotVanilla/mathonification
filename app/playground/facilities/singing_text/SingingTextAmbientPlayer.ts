@@ -35,6 +35,8 @@ export class SingingTextAmbientPlayer extends AmbientPlayer
     {
         super(music_context__ref)
         this.initVoice()
+
+        AmbientPlayer.active_ambient_player__refs.add(this)
     }
 
     private initVoice()
@@ -81,11 +83,19 @@ export class SingingTextAmbientPlayer extends AmbientPlayer
         }
     }
 
+    linearRampGainTo(value: number, in_n_milliseconds: number): void
+    {
+        this.piano_voice?.raw_gain.linearRampTo(value, in_n_milliseconds / 1000)
+        this.flute_voice?.raw_gain.linearRampTo(value, in_n_milliseconds / 1000)
+    }
+
     dispose(): void
     {
         this.piano_voice?.dispose()
         this.piano_voice = null
         this.flute_voice?.dispose()
         this.flute_voice = null
+
+        AmbientPlayer.active_ambient_player__refs.delete(this)
     }
 }
