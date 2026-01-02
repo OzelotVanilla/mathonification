@@ -1,3 +1,4 @@
+import { type AmbientPlayer } from "./AmbientPlayer";
 import { AvailableFacility } from "./Facility";
 
 export type MusicTimeBroadcastEvent = {
@@ -8,6 +9,7 @@ export type MusicTimeBroadcastEvent = {
 export type FacilityMountEventDetail = {
     name: AvailableFacility
     element: HTMLElement
+    player?: AmbientPlayer
 }
 
 export type FacilityUnmountEventDetail = {

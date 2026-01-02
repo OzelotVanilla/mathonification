@@ -1,9 +1,12 @@
 import { MusicContext } from "@/utils/music"
+import { SoundManager } from "@/utils/SoundManager"
 
 
 /**
  * When the singing text facility is not focus,
  *  this player will play ambient music according to time.
+ * 
+ * All ambient player should be created after initial user-click (of the `PlaygroundGate`).
  */
 export abstract class AmbientPlayer
 {
@@ -28,6 +31,39 @@ export abstract class AmbientPlayer
      * Control the desired gain value.
      */
     abstract set master_gain_value(value: number)
+
+    get all_init_finished() { return this.all_init_finished__promise }
+
+    protected all_init_finished__promise: Promise<any> | null = null
+
+    /**
+     * Request the init that awaiting `SoundManager.resume_finished`.
+     * 
+     * All 
+     * 
+     * @async Should be async.
+     */
+    protected async requestPostInit(): Promise<any>
+    {
+        if (SoundManager.resume_finished == null)
+        {
+            throw Error(`AmbientPlayer should be inited after SoundManager's resume.`)
+        }
+        if (this.all_init_finished__promise != null) { return this.all_init_finished__promise }
+
+        this.all_init_finished__promise = (async () =>
+        {
+            await SoundManager.resume_finished
+            this.postInit()
+        })()
+
+        return this.all_init_finished__promise
+    }
+
+    /**
+     * The init that should be done after `SoundManager.resume_finished`.
+     */
+    protected abstract postInit(): void
 
     /**
      * Receive latest timing information.
@@ -63,10 +99,11 @@ export abstract class AmbientPlayer
         }
     }
 
+    abstract dispose(): void 
+
     constructor(music_context__ref: MusicContext)
     {
         this.music_context__ref = music_context__ref
+        this.requestPostInit()
     }
-
-    dispose(): void { }
 }
