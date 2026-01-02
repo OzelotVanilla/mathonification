@@ -7,9 +7,11 @@ import { SoundManager } from "@/utils/SoundManager"
 import { MusicContext } from "@/utils/music"
 import { AvailableFacility } from "./facilities/Facility"
 import { SingingTextFacility } from "./facilities/singing_text/SingingTextFacility"
-import { MusicTimeBroadcastEvent } from "./facilities/facility_event.extend.interface"
+import { FacilityMountEventDetail, FacilityUnmountEventDetail, MusicTimeBroadcastEvent } from "./facilities/facility_event.extend.interface"
 import { StageOverlay, stage_overlay__fade_duration } from "./stage_overlay/StageOverlay"
 import { AmbientPlayer } from "./facilities/AmbientPlayer"
+import { getHTMLElementCenterPositionRatioOnXAxis } from "@/utils/layout"
+import { clamp } from "@/utils/math"
 
 
 export type SelectedFacility = AvailableFacility | null
@@ -111,6 +113,8 @@ function Playground({ entering_status }: Playground_Param)
     const playground_fields__div = useRef<HTMLDivElement>(null)
     const playground_transform__ref = useRef({ translate_x: 0, translate_y: 0, scale: 1 })
     const facility_registry__ref = useRef(new Map<AvailableFacility, HTMLElement>())
+    /** Notice: A facility might NOT register an `AmbientPlayer`. */
+    const facility_player_registry__ref = useRef(new Map<AvailableFacility, AmbientPlayer>())
     const show_stage_overlay__timeout_id = useRef(0)
     /** Timestamp when `tickMusicTimeBroadcast` started. */
     const start_time__timestamp = useRef(0)
@@ -139,13 +143,22 @@ function Playground({ entering_status }: Playground_Param)
         window.setTimeout(() => setWhetherShouldShowStageOverlay(false), stage_overlay__fade_duration)
         AmbientPlayer.fadeInGain(stage_overlay__fade_duration)
     }
-    const onReceiveFacilityMount = (event: CustomEvent<{ name: AvailableFacility, element: HTMLElement }>) =>
+    const onReceiveFacilityMount = (event: CustomEvent<FacilityMountEventDetail>) =>
     {
         facility_registry__ref.current.set(event.detail.name, event.detail.element)
+        if (event.detail.player != null && event.detail.player != undefined)
+        {
+            facility_player_registry__ref.current.set(event.detail.name, event.detail.player)
+            updatePanning(event.detail.name)
+        }
     }
-    const onReceiveFacilityUnmount = (event: CustomEvent<{ name: AvailableFacility }>) =>
+    const onReceiveFacilityUnmount = (event: CustomEvent<FacilityUnmountEventDetail>) =>
     {
         facility_registry__ref.current.delete(event.detail.name)
+        if (facility_player_registry__ref.current.has(event.detail.name))
+        {
+            facility_player_registry__ref.current.delete(event.detail.name)
+        }
     }
     const tickMusicTimeBroadcast = () =>
     {
@@ -176,6 +189,23 @@ function Playground({ entering_status }: Playground_Param)
             + (ticks_elapsed__count + 1) * tick_interval__in_ms
         const delay_until_next = Math.max(0, next_target_time__in_ms - performance.now())
         return (tickMusicTimeBroadcast__cancelID.current = window.setTimeout(tickMusicTimeBroadcast, delay_until_next))
+    }
+    /**
+     * Recalculate and apply panning to all active facilities, according to screen position.
+     */
+    const updatePanning = (facility_name?: AvailableFacility) =>
+    {
+        const name_of_update_waiting_facilities = facility_name == undefined
+            ? facility_player_registry__ref.current.keys()
+            : [facility_name]
+
+        for (const name of name_of_update_waiting_facilities)
+        {
+            const element = facility_registry__ref.current.get(name)!
+            const player = facility_player_registry__ref.current.get(name)!
+            const x_axis_ratio = getHTMLElementCenterPositionRatioOnXAxis(element)
+            player.master_panning = clamp(-1, x_axis_ratio * 2 - 1, 1) // Map `[0, 1]` to `[-1, 1]`.
+        }
     }
 
     // Init.
@@ -287,6 +317,9 @@ function Playground({ entering_status }: Playground_Param)
 
             playground_fields.style.transformOrigin = "0 0"
             playground_fields.style.transform = `translate(${translate_x}px, ${translate_y}px) scale(${scale})`
+
+            // Update panning also.
+            updatePanning()
 
             playground_transform__ref.current = { translate_x, translate_y, scale }
             if (progress < 1) { animation_frame_id = requestAnimationFrame(tick) }

@@ -5,6 +5,7 @@ import "./Facility.scss"
 import { type AmbientPlayer } from "./AmbientPlayer"
 import React, { ComponentPropsWithoutRef, RefObject, useEffect, useRef, useState } from "react"
 import { mapLinearToLinear } from "@/utils/math"
+import { FacilityMountEventDetail } from "./facility_event.extend.interface"
 
 /**
  * The duration for the finishing animation.
@@ -66,7 +67,9 @@ export function Facility({
 
         document.dispatchEvent(new CustomEvent("facility_mount", {
             bubbles: true,
-            detail: { name, element: facility__div.current }
+            detail: ({
+                name, element: facility__div.current, player: ambient_player__ref?.current ?? undefined
+            } satisfies FacilityMountEventDetail) 
         }))
 
         return () =>

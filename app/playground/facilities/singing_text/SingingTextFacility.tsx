@@ -5,12 +5,16 @@ import { AvailableFacility, Facility } from "../Facility";
 import { SingingTextAmbientPlayer } from "./SingingTextAmbientPlayer";
 import { MusicContext } from "@/utils/music";
 import { MusicTimeBroadcastEvent } from "../facility_event.extend.interface";
-import { SoundManager } from "@/utils/SoundManager";
 
+/**
+ * This function is only responsible for init the facility (thumbnail),
+ *  the full-screen interaction should be init-ed in `stage_overlay`.
+ */
 export function SingingTextFacility({ music_context__ref }: SingingTextFacility_Param)
 {
     const [is_loading, setWhetherLoading] = useState(true)
-    const ambient_player__ref = useRef<SingingTextAmbientPlayer>(null)
+    const facility_child__ref = useRef<HTMLElement>(null)
+    const ambient_player__ref = useRef(new SingingTextAmbientPlayer(music_context__ref.current))
 
     /** As non-focused object, play ambient BGM. */
     const onReceivingMusicTimeBroadcast = (event: CustomEvent<MusicTimeBroadcastEvent>) =>
@@ -19,20 +23,16 @@ export function SingingTextFacility({ music_context__ref }: SingingTextFacility_
         ambient_player__ref.current?.update(measure, beat)
     }
 
-    // This function is only responsible for init the facility (thumbnail),
-    //  the full-screen interaction should be init-ed in `stage_overlay`.
     useEffect(() =>
     {
         if (music_context__ref == null) { return }
 
+        document.addEventListener("music_time_broadcast", onReceivingMusicTimeBroadcast);
+
         // IIFE.
         (async () =>
         {
-            await SoundManager.resume_finished
-            ambient_player__ref.current = new SingingTextAmbientPlayer(music_context__ref.current)
-
-            document.addEventListener("music_time_broadcast", onReceivingMusicTimeBroadcast)
-
+            await ambient_player__ref.current.all_init_finished
             setWhetherLoading(false)
         })()
 
@@ -45,7 +45,7 @@ export function SingingTextFacility({ music_context__ref }: SingingTextFacility_
 
     return (<Facility name={AvailableFacility.singing_text} style={{ top: "30%", left: "60%" }}
         is_loading={is_loading} ambient_player__ref={ambient_player__ref}>
-        <span >SINGING TEXT FACILITY</span>
+        <span ref={facility_child__ref}>SINGING TEXT FACILITY</span>
     </Facility>)
 }
 

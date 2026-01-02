@@ -34,9 +34,13 @@ export class SingingTextAmbientPlayer extends AmbientPlayer
     constructor(music_context__ref: MusicContext)
     {
         super(music_context__ref)
-        this.initVoice()
 
         AmbientPlayer.active_ambient_player__refs.add(this)
+    }
+
+    protected postInit(): void
+    {
+        this.initVoice()
     }
 
     private initVoice()
