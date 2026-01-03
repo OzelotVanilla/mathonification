@@ -2,7 +2,7 @@
 
 import "./page.scss"
 
-import { Dispatch, RefObject, SetStateAction, useEffect, useRef, useState } from "react"
+import { createContext, Dispatch, RefObject, SetStateAction, useContext, useEffect, useRef, useState } from "react"
 import { SoundManager } from "@/utils/SoundManager"
 import { MusicContext } from "@/utils/music"
 import { AvailableFacility } from "./facilities/Facility"
@@ -27,6 +27,14 @@ const zoom_to_facility__anime__duration = 1.5 * 1000
  * Number of music-time broadcast ticks that occur within a single measure.
  */
 const tickMusicTimeBroadcast__frequency = 8
+
+const MusicContext_Context = createContext<RefObject<MusicContext> | null>(null)
+export const useMusicContext_Context = () =>
+{
+    const music_context__ref = useContext(MusicContext_Context)
+    if (music_context__ref == null) { throw new Error("MusicContext provider missing") }
+    return music_context__ref
+}
 
 /**
  * This page contains two or more fields containing sketches.
@@ -345,7 +353,7 @@ function Playground({ entering_status }: Playground_Param)
         }
     }, [selected_facility])
 
-    return (<div id="playground" ref={playground__div}>
+    return (<MusicContext_Context value={music_context__ref}><div id="playground" ref={playground__div}>
         <div id="playground_fields" ref={playground_fields__div}>
             {/* By default, playground should show fields (containing facilities). */}
             <PlaygroundField__A music_context__ref={music_context__ref} />
@@ -353,7 +361,7 @@ function Playground({ entering_status }: Playground_Param)
         </div>
 
         {should_show__stage_overlay && <StageOverlay selected_facility={selected_facility} />}
-    </div>)
+    </div></MusicContext_Context>)
 }
 
 type Playground_Param = {
