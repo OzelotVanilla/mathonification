@@ -276,6 +276,7 @@ function Playground({ entering_status }: Playground_Param)
     }, [selected_facility])
 
     // Move and zoom "into" the facility.
+    // This changes the size & position of `playground_fields`.
     useEffect(() =>
     {
         // Note: facilities calculates the panning using position.
@@ -354,11 +355,11 @@ function Playground({ entering_status }: Playground_Param)
     }, [selected_facility])
 
     return (<MusicContext_Context value={music_context__ref}><div id="playground" ref={playground__div}>
-        <div id="playground_fields" ref={playground_fields__div}>
+        <div id="playground_field_viewport"><div id="playground_fields" ref={playground_fields__div}>
             {/* By default, playground should show fields (containing facilities). */}
             <PlaygroundField__A music_context__ref={music_context__ref} />
             <PlaygroundField__B music_context__ref={music_context__ref} />
-        </div>
+        </div></div>
 
         {should_show__stage_overlay && <StageOverlay selected_facility={selected_facility} />}
     </div></MusicContext_Context>)
