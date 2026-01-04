@@ -219,6 +219,17 @@ export class SoundManager
         instrument?.triggerAttackRelease(keys_to_play, duration, getToneContext().currentTime)
     }
 
+    /** 
+     * Release all playing note by calling `releaseAll()` on all available instruments.
+     */
+    static releaseAllNote()
+    {
+        for (const instrument of this.tonejs_instruments.values())
+        {
+            instrument.releaseAll()
+        }
+    }
+
     public static createInstrumentVoice(param: Param_createInstrumentVoice): InstrumentVoice
     {
         if (this.init_promise == null) { throw Error("SoundManager not initialized. Call resume() first.") }
