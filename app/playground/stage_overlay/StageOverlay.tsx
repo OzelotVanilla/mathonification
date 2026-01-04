@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { SelectedFacility } from "../page"
 import { AvailableFacility } from "../facilities/Facility"
+import SingingTextOverlay from "./singing_text/SingingTextOverlay"
 
 import "./StageOverlay.scss"
 
@@ -52,7 +53,7 @@ export function StageOverlay({ selected_facility }: StageOverlay_Param)
         <div id="stage_overlay__close_button" onClick={onCloseButtonClick}>X</div>
         <div id="stage_overlay__content">
             {selected_facility == AvailableFacility.singing_text
-                && "singing_text"}
+                && <SingingTextOverlay />}
         </div>
     </div>)
 }
