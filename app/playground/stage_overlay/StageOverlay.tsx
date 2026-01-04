@@ -4,6 +4,8 @@ import { useEffect, useState } from "react"
 import { SelectedFacility } from "../page"
 import { AvailableFacility } from "../facilities/Facility"
 
+import "./StageOverlay.scss"
+
 
 /** In ms. */
 export const stage_overlay__fade_duration = 1.5 * 1000
