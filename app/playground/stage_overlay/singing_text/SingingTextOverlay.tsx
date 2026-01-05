@@ -39,7 +39,7 @@ export default function SingingTextOverlay()
     const onSignAreaClick = (event: React.MouseEvent<HTMLDivElement>) =>
     {
         // If inside sign area, abort.
-        if (sign_area__ref.current?.contains(event.target as Node) ?? false)
+        if (textarea__ref.current?.contains(event.target as Node) ?? false)
         {
             return
         }
