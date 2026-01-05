@@ -2,7 +2,7 @@
 
 import "./page.scss"
 
-import { createContext, Dispatch, RefObject, SetStateAction, useContext, useEffect, useRef, useState } from "react"
+import { Dispatch, RefObject, SetStateAction, useContext, useEffect, useRef, useState } from "react"
 import { SoundManager } from "@/utils/SoundManager"
 import { MusicContext } from "@/utils/music"
 import { AvailableFacility } from "./facilities/Facility"
@@ -12,6 +12,7 @@ import { StageOverlay, stage_overlay__fade_duration } from "./stage_overlay/Stag
 import { AmbientPlayer } from "./facilities/AmbientPlayer"
 import { getHTMLElementCenterPositionRatioOnXAxis } from "@/utils/layout"
 import { clamp } from "@/utils/math"
+import { MusicContext_Context } from "./MusicContext_Context"
 
 
 export type SelectedFacility = AvailableFacility | null
@@ -28,13 +29,6 @@ const zoom_to_facility__anime__duration = 1.5 * 1000
  */
 const tickMusicTimeBroadcast__frequency = 8
 
-const MusicContext_Context = createContext<RefObject<MusicContext> | null>(null)
-export const useMusicContext_Context = () =>
-{
-    const music_context__ref = useContext(MusicContext_Context)
-    if (music_context__ref == null) { throw new Error("MusicContext provider missing") }
-    return music_context__ref
-}
 
 /**
  * This page contains two or more fields containing sketches.
