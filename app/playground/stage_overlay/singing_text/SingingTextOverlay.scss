@@ -4,6 +4,8 @@
     // Consisted by a "board face" and a "stick".
     #singing_text_overlay__sign_area
     {
+        width: 100%;
+        height: 100%;
         display: flex;
         flex-direction: column;
         align-items: center;
