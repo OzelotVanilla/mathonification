@@ -269,7 +269,7 @@ export class SoundManager
             panner_node
         })
 
-        return {
+        return ({
             id: voice_id,
             triggerAttackRelease: (note: string | number | string[] | number[], duration: Time, time) =>
             {
@@ -281,7 +281,7 @@ export class SoundManager
             get raw_gain() { return gain_node.gain },
             get raw_pan() { return panner_node.pan },
             dispose: () => this.disposeInstrumentVoice(voice_id)
-        } satisfies InstrumentVoice
+        }) satisfies InstrumentVoice
     }
 
     public static disposeInstrumentVoice(voice_id: string)
@@ -337,7 +337,6 @@ export class SoundManager
 
         function getFetchPromises(instrument_name: AvailableSamplerName, urls_object: { [key_name: string]: string })
         {
-            caches.open
             return Object.values(urls_object).map(
                 url => requestIdleCallback(() => fetch(
                     `instrument_sample/${instrument_name}/${url}`,
