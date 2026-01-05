@@ -19,32 +19,59 @@ const offset_to_subsemitone = 6
 const midi_c4_note = 60
 
 
+export type StopPlayingMethod = "should_restart_sound_manager" | "release_all"
+
 export class SyntaxPlayer
 {
     should_continue_play = true
     tick__setTimeout_ids: number[] = []
+    music_context: MusicContext
 
-    playMusic()
+    constructor(music_context?: MusicContext)
     {
-        const text_container = document.getElementById("singing_text__text_container")
-        let music_context = new MusicContext()
+        this.music_context = music_context ?? new MusicContext()
+    }
+
+    playMusic(
+        text_container__id: string = "singing_text__text_container"
+    )
+    {
+        const text_container = document.getElementById(text_container__id)
         if (text_container == null) { return }
 
-        getToneTransport().bpm.value = music_context.bpm
+        getToneTransport().bpm.value = this.music_context.bpm
 
         this.should_continue_play = true
         const tree_walker = document.createTreeWalker(text_container, NodeFilter.SHOW_ELEMENT)
-        this.tick(music_context, tree_walker)
+        this.tick(this.music_context, tree_walker)
     }
 
     /**
-     * @param immediately Whether the sounding piano should be mute immediately.
+     * @param method The way how music is stopped (by default, `"release_all"`):
+     * * `should_restart_sound_manager`: Whether the sounding piano should be mute immediately
+     *    by `dispose` and re-`init` the `SoundManager`.
+     *   This will immediately stop the sound.
+     * * `release_all`: All playing sound is released.
      */
-    stopPlaying(immediately: boolean = true)
+    stopPlaying(method: StopPlayingMethod = "release_all")
     {
         this.should_continue_play = false
-        if (immediately) { SoundManager.stop() }
         for (const id of this.tick__setTimeout_ids) { clearTimeout(id) }
+
+        switch (method)
+        {
+            case "should_restart_sound_manager": {
+                SoundManager.stop()
+            } break
+
+            case "release_all": {
+                SoundManager.releaseAllNote()
+            } break
+
+            default: {
+                throw TypeError(`Unsupported StopPlayingMethod "${method}".`)
+            }
+        }
     }
 
     /** Put n more events into the `setTimeout`. */
