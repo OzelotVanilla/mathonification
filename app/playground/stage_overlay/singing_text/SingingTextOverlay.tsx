@@ -4,7 +4,7 @@ import { SyntaxPlayer } from "@/app/sketches/singing_text/music_player"
 import { convertToTokens } from "@/app/sketches/singing_text/tokeniser"
 import { ConjunctionType } from "@/app/sketches/singing_text/constants"
 import { highlightContent } from "@/app/sketches/singing_text/highlighter"
-import { useMusicContext_Context } from "../../page"
+import { useMusicContext_Context } from "../../MusicContext_Context"
 
 import "./SingingTextOverlay.scss"
 import "@/app/sketches/singing_text/highlight.scss"
