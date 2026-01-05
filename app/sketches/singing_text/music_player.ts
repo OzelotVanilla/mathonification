@@ -60,11 +60,13 @@ export class SyntaxPlayer
 
         const span_element = next_node as HTMLSpanElement
 
+        const span_text = span_element.textContent ?? span_element.innerText ?? ""
+
         // If not a conjunction, cut into words.
         if (span_element.dataset["type"] == null || span_element.dataset["type"] == undefined)
         {
             let time_offset = 0
-            for (const match of span_element.innerText.matchAll(/\b\w+\b/g))
+            for (const match of span_text.matchAll(/\b\w+\b/g))
             {
                 const word = match[0]
                 const index = match.index!;
@@ -94,7 +96,7 @@ export class SyntaxPlayer
         }
         else
         {
-            const phrase = span_element.innerText
+            const phrase = span_text
             const notes_to_play = getNoteOfConjunction(music_context, span_element)
             const notes_length = getNoteLength(phrase)
             const notes_length_in_milliseconds = notes_length.toMilliseconds()
