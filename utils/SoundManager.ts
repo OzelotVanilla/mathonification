@@ -115,6 +115,13 @@ export class SoundManager
     public static get resume_finished() { return this.resume_promise }
 
     /**
+     * Record the status of resume, in a sync way.
+     */
+    public static get is_resume_finished() { return this.is_resume_finished__store }
+
+    private static is_resume_finished__store = false
+
+    /**
      * All sound node should connect to this.
      */
     private static master_input: ToneAudioNode
@@ -160,6 +167,7 @@ export class SoundManager
         {
             await startTone()
             await this.init()
+            this.is_resume_finished__store = true
         })()
 
         return this.resume_promise
@@ -184,6 +192,8 @@ export class SoundManager
         this.tonejs_instruments.clear()
         this.custom_voices.forEach((_, id) => this.disposeInstrumentVoice(id))
         this.sound_effect_chain_manager.dispose()
+
+        this.is_resume_finished__store = false
     }
 
     public static playNote(midi_note_number: number, param?: Param_playNote): void;
@@ -195,6 +205,12 @@ export class SoundManager
         param: Param_playNote = default_playNote_param
     ): void
     {
+        // If not resumed, throw error.
+        if (!this.is_resume_finished)
+        {
+            throw new Error(`Attempt to "playNote" before resume is finished.`)
+        }
+
         let { instrument_name = "piano", duration = 1, effect_chain_name } = param
         let keys_to_play = this.convertInputNotesToKeyNames(note)
 
@@ -339,7 +355,7 @@ export class SoundManager
         {
             return Object.values(urls_object).map(
                 url => requestIdleCallback(() => fetch(
-                    `instrument_sample/${instrument_name}/${url}`,
+                    `/instrument_sample/${instrument_name}/${url}`,
                     { cache: "force-cache", signal: abort_signal }
                 ).then(
                     response =>
