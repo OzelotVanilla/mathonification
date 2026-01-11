@@ -17,6 +17,7 @@ export default function SlopeGlobePage()
     const start = () =>
     {
         setWhetherStarted(true)
+        SoundManager.resume()
     }
 
     return (<div id="slope_globe">

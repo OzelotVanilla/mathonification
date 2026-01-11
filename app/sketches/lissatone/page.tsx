@@ -21,7 +21,7 @@ export default function LissajousPage()
         lissajous_player.current = new LissajousSoundPlayer(lissajous_curve.current)
         lissajous_player.current.resume().then(() =>
         {
-                lissajous_player.current!.start()
+            lissajous_player.current!.start()
         })
     }
 

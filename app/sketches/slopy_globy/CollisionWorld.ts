@@ -8,6 +8,7 @@ import * as cannon from "cannon-es"
 import { DoubleSide, Mesh, MeshBasicMaterial, MeshStandardMaterial, PlaneGeometry, SphereGeometry } from "three"
 import { SlopeChangingGlobe } from "./SlopeChangingGlobe"
 import { onBallFirstCollide__playSound } from "./sound_generate"
+import { SoundManager } from "@/utils/SoundManager"
 
 export interface CollisionEvent
 {
@@ -194,6 +195,9 @@ export class CollisionWorld
 
     private checkBalls(now: number)
     {
+        // Since balls collision creates sound, all balls should be spawned after SoundManager's resume.
+        if (!SoundManager.is_resume_finished) { return }
+
         if (this.falling_balls.length < this.max_balls
             && now - this.last_spawn_time > this.spawn_interval_ms)
         {
@@ -248,7 +252,6 @@ export class CollisionWorld
         let is_collided = false
         const collisionHandler = function (event: CollisionEvent)
         {
-
             if (!is_collided)
             {
                 setTimeout(() => onBallFirstCollide__playSound(event))
