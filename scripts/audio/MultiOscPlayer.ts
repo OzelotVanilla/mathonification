@@ -1,3 +1,5 @@
+import { SoundManager } from "@/utils/SoundManager"
+
 /**
  * Class that contains multiple osc and corresponding gain,
  *  connected to a master gain, and then the destination.

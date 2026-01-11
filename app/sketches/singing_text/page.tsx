@@ -11,18 +11,39 @@ import { convertToTokens } from "./tokeniser";
 import { ConjunctionType } from "./constants";
 import { highlightContent } from "./highlighter";
 import { SyntaxPlayer } from "./music_player";
+import { SoundManager } from "@/utils/SoundManager";
 
 export default function SyntaxConjuctionsHighlight()
 {
     const [user_text, setUserText] = useState<string>("")
+    const [is_started, setWhetherStarted] = useState(false)
 
-    return (<div id="syntax_conjunctions_highlight">
-        <PageTitle />
-        <div id="left_and_right_flex">
-            <LeftFormArea setUserText={setUserText} />
-            <RightResultArea user_text={user_text} />
-        </div>
-    </div>)
+    const start = () =>
+    {
+        SoundManager.resume()
+        setWhetherStarted(true)
+    }
+
+    useEffect(() =>
+    {
+        SoundManager.preloadSamplingFile()
+    }, [])
+
+    return (<div id="syntax_conjunctions_highlight">{
+        is_started
+            ? (<>
+                <PageTitle />
+                <div id="left_and_right_flex">
+                    <LeftFormArea setUserText={setUserText} />
+                    <RightResultArea user_text={user_text} />
+                </div>
+            </>)
+            : (
+                <div className="PageCover" onClick={start}>
+                    <div className="Text">Singing Text</div>
+                </div>
+            )
+    }</div>)
 }
 
 function PageTitle()
@@ -36,6 +57,8 @@ function PageTitle()
 
 function LeftFormArea({ setUserText }: LeftFormArea__Params)
 {
+    const [is_button_disabled, setWhetherButtonDisabled] = useState(true)
+
     const [form] = Form.useForm()
     const form_init_value = {
         user_text: belling_the_cat__text
@@ -49,12 +72,21 @@ function LeftFormArea({ setUserText }: LeftFormArea__Params)
         }
     }
 
+    useEffect(() =>
+    {
+        (async () =>
+        {
+            await SoundManager.resume_finished
+            setWhetherButtonDisabled(false)
+        })()
+    }, [])
+
     return (<Form id="left_form_area" variant="filled" form={form} initialValues={form_init_value} onFinish={onFormSubmit}>
         <Form.Item name="user_text" noStyle={true}>
             <TextArea id="text_input_area" placeholder="Input your text here (English only)." />
         </Form.Item>
         <Form.Item noStyle={true}>
-            <Button type="primary" htmlType="submit">Generate Music</Button>
+            <Button disabled={is_button_disabled} type="primary" htmlType="submit">Generate Music</Button>
         </Form.Item>
     </Form>)
 }
@@ -70,16 +102,11 @@ type FormReturnData = {
 function RightResultArea({ user_text }: RightResultArea__Params)
 {
     const text_container_ref = useRef<HTMLDivElement>(null)
-    const syntax_player = useRef<SyntaxPlayer>(null)
+    const syntax_player = useRef<SyntaxPlayer>(new SyntaxPlayer())
 
     let content_to_show: React.ReactNode = user_text.length > 0
         ? (<p>{convertUserTextToContent(user_text, text_container_ref)}</p>)
         : (<p className="placeholder">Please input text at left, then press the button to generate.</p>)
-
-    useEffect(() =>
-    {
-        syntax_player.current = new SyntaxPlayer()
-    }, [])
 
     useEffect(function ()
     {

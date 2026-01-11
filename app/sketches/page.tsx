@@ -6,6 +6,7 @@ import { sketch_to_show__array } from "./const_sketch_to_show"
 import "./page.scss"
 import Link from "next/link"
 import { useEffect, useState } from "react"
+import { SoundManager } from "@/utils/SoundManager"
 
 
 export default function SketchPage()
@@ -14,6 +15,9 @@ export default function SketchPage()
 
     useEffect(() =>
     {
+        // Preload sampling file async-ly.
+        SoundManager.preloadSamplingFile()
+
         setWhetherStillLoading(false)
     }, [])
 
