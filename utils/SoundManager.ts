@@ -193,6 +193,10 @@ export class SoundManager
         this.custom_voices.forEach((_, id) => this.disposeInstrumentVoice(id))
         this.sound_effect_chain_manager.dispose()
 
+        this.final_compressor.dispose()
+        this.final_limiter.dispose()
+        this.meter.dispose()
+
         this.is_resume_finished__store = false
     }
 
@@ -433,24 +437,43 @@ export class SoundManager
 
     private static loadPianoSampler()
     {
-        this.addPianoSampler("piano", /* skip_when_exist: */ true)
-
+        // base
         {
-            let piano_vibrato = this.addPianoSampler("piano__vibrato")
-            this.sound_effect_chain_manager.add("piano__vibrato", [
-                new Vibrato(5, 0.2)
-            ], this.effect_output)
-            let effect_chain = this.sound_effect_chain_manager.get("piano__vibrato")!
-            if (effect_chain.length > 0) { piano_vibrato.connect(effect_chain[0]) }
+            const piano = this.addPianoSampler("piano", /* skip_when_exist */ true)
+            piano.disconnect()
+            piano.connect(this.master_input)
         }
 
+        // vibrato
         {
-            let piano_reverb = this.addPianoSampler("piano__reverb")
-            this.sound_effect_chain_manager.add("piano__reverb", [
-                new Reverb(0.5)
-            ], this.effect_output)
-            let effect_chain = this.sound_effect_chain_manager.get("piano__reverb")!
-            if (effect_chain.length > 0) { piano_reverb.connect(effect_chain[0]) }
+            const piano_vibrato = this.addPianoSampler("piano__vibrato", /* skip_when_exist */ true)
+
+            this.sound_effect_chain_manager.add(
+                "piano__vibrato",
+                [new Vibrato(5, 0.2)],
+                this.effect_output
+            )
+
+            const chain = this.sound_effect_chain_manager.get("piano__vibrato")!
+            piano_vibrato.disconnect()
+            if (chain.length > 0) { piano_vibrato.connect(chain[0]) }
+            else { piano_vibrato.connect(this.master_input) }
+        }
+
+        // reverb
+        {
+            const piano_reverb = this.addPianoSampler("piano__reverb", /* skip_when_exist */ true)
+
+            this.sound_effect_chain_manager.add(
+                "piano__reverb",
+                [new Reverb(0.5)],
+                this.effect_output
+            )
+
+            const chain = this.sound_effect_chain_manager.get("piano__reverb")!
+            piano_reverb.disconnect()
+            if (chain.length > 0) { piano_reverb.connect(chain[0]) }
+            else { piano_reverb.connect(this.master_input) }
         }
     }
 
@@ -489,17 +512,23 @@ export class SoundManager
 
     private static addPianoSampler(name: AvailableInstrumentName, skip_when_exist: boolean = false)
     {
-        if (this.tonejs_instruments.has(name) && !skip_when_exist)
+        if (this.tonejs_instruments.has(name))
         {
-            throw Error(
-                `Piano ${name} already exists. ` +
-                "Either change the chain name, or delete existing one. " +
-                "Effect chain not added."
-            )
+            if (skip_when_exist)
+            {
+                return this.tonejs_instruments.get(name)!
+            }
+            else
+            {
+                throw Error(
+                    `Piano ${name} already exists. ` +
+                    "Either change the chain name, or delete existing one. " +
+                    "Effect chain not added."
+                )
+            }
         }
 
-        const instrument = this.createSamplerInstance("piano").connect(this.master_input)
-
+        const instrument = this.createSamplerInstance("piano") // Do not connect to `master_input` here !
         this.tonejs_instruments.set(name, instrument)
 
         return instrument
