@@ -4,7 +4,7 @@ import { getContext as getToneContext, Sampler, loaded as onToneLoaded, start as
 import { Compressor, ToneAudioNode, Vibrato, Limiter, Meter, Gain, Panner } from "tone";
 import { isClientEnvironment } from "./env";
 import { midi_note_to_name } from "./constants";
-import { Time } from "tone/build/esm/core/type/Units";
+import { NormalRange, Time } from "tone/build/esm/core/type/Units";
 import { SoundEffectChainManager } from "./SoundEffectChainManager";
 
 type AvailableSamplerName = "piano" | "xylophone" | "flute"
@@ -31,7 +31,11 @@ type Param_createInstrumentVoice = {
 
 export type InstrumentVoice = {
     id: string
-    triggerAttackRelease(note: string | number | string[] | number[], duration?: Time, time?: number): void
+    triggerAttackRelease(
+        note: string | number | string[] | number[],
+        duration?: Time, time?: number,
+        velocity?: NormalRange
+    ): void
     /** Trigger a release to all sounding note. */
     releaseAllNote(): void
     setPan(value: number): void
@@ -298,10 +302,10 @@ export class SoundManager
 
         return ({
             id: voice_id,
-            triggerAttackRelease: (note: string | number | string[] | number[], duration: Time, time) =>
+            triggerAttackRelease: (note: string | number | string[] | number[], duration: Time, time, velocity) =>
             {
                 const keys_to_play = this.convertInputNotesToKeyNames(note)
-                sampler.triggerAttackRelease(keys_to_play, duration, time ?? getToneContext().currentTime)
+                sampler.triggerAttackRelease(keys_to_play, duration, time ?? getToneContext().currentTime, velocity)
             },
             releaseAllNote: () =>
             {
