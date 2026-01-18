@@ -32,6 +32,8 @@ type Param_createInstrumentVoice = {
 export type InstrumentVoice = {
     id: string
     triggerAttackRelease(note: string | number | string[] | number[], duration?: Time, time?: number): void
+    /** Trigger a release to all sounding note. */
+    releaseAllNote(): void
     setPan(value: number): void
     setGain(value: number): void
     raw_gain: Gain["gain"]
@@ -250,6 +252,11 @@ export class SoundManager
         }
     }
 
+    /**
+     * Create an instrument connected with its own gain and panner.
+     * 
+     * Any sounding unit could use this to create their instrument.
+     */
     public static createInstrumentVoice(param: Param_createInstrumentVoice): InstrumentVoice
     {
         if (this.init_promise == null) { throw Error("SoundManager not initialized. Call resume() first.") }
@@ -295,6 +302,10 @@ export class SoundManager
             {
                 const keys_to_play = this.convertInputNotesToKeyNames(note)
                 sampler.triggerAttackRelease(keys_to_play, duration, time ?? getToneContext().currentTime)
+            },
+            releaseAllNote: () =>
+            {
+                sampler.releaseAll()
             },
             setPan: (value) => { panner_node.pan.value = value },
             setGain: (value) => { gain_node.gain.value = value },
