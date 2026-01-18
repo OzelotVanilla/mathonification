@@ -1,4 +1,4 @@
-import { SoundManager } from "@/utils/SoundManager"
+import { InstrumentVoice, SoundManager } from "@/utils/SoundManager"
 import { ConjunctionType } from "./constants"
 import { getTransport as getToneTransport } from "tone"
 import * as Tone from "tone"
@@ -26,10 +26,21 @@ export class SyntaxPlayer
     should_continue_play = true
     tick__setTimeout_ids: number[] = []
     music_context: MusicContext
+    instrument__piano!: InstrumentVoice
+    instrument__flute!: InstrumentVoice
 
     constructor(music_context?: MusicContext)
     {
         this.music_context = music_context ?? new MusicContext()
+        SoundManager.init_finished?.then(() =>
+        {
+            this.instrument__piano = SoundManager.createInstrumentVoice({
+                instrument_name: "piano"
+            })
+            this.instrument__flute = SoundManager.createInstrumentVoice({
+                instrument_name: "flute"
+            })
+        })
     }
 
     playMusic(
@@ -106,9 +117,9 @@ export class SyntaxPlayer
                 const notes_length_in_milliseconds = notes_length.toMilliseconds()
                 const notes_duration_in_milliseconds = notes_length_in_milliseconds * Math.random() * 0.75
 
-                this.tick__setTimeout_ids.push(window.setTimeout(function ()
+                this.tick__setTimeout_ids.push(window.setTimeout(() =>
                 {
-                    SoundManager.playNote(notes_to_play, { duration: notes_duration_in_milliseconds })
+                    this.instrument__piano.triggerAttackRelease(notes_to_play, notes_duration_in_milliseconds)
 
                     let range = new Range()
                     range.setStart(span_element.firstChild!, index)
@@ -129,9 +140,9 @@ export class SyntaxPlayer
             const notes_length_in_milliseconds = notes_length.toMilliseconds()
             const notes_duration_in_milliseconds = notes_length_in_milliseconds * Math.random() * 0.5
 
-            setTimeout(function ()
+            setTimeout(() =>
             {
-                SoundManager.playNote(notes_to_play, { duration: notes_duration_in_milliseconds })
+                this.instrument__piano.triggerAttackRelease(notes_to_play, notes_duration_in_milliseconds)
 
                 let range = new Range()
                 range.setStartBefore(span_element)

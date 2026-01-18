@@ -102,7 +102,7 @@ type FormReturnData = {
 function RightResultArea({ user_text }: RightResultArea__Params)
 {
     const text_container_ref = useRef<HTMLDivElement>(null)
-    const syntax_player = useRef<SyntaxPlayer>(new SyntaxPlayer())
+    const syntax_player = useRef<SyntaxPlayer>(null)
 
     let content_to_show: React.ReactNode = user_text.length > 0
         ? (<p>{convertUserTextToContent(user_text, text_container_ref)}</p>)
@@ -110,6 +110,12 @@ function RightResultArea({ user_text }: RightResultArea__Params)
 
     useEffect(function ()
     {
+        (async () =>
+        {
+            await SoundManager.resume_finished
+            syntax_player.current = new SyntaxPlayer()
+        })()
+
         if (user_text.length > 0)
         {
             highlightContent()
