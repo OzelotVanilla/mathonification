@@ -1,8 +1,10 @@
 import { InstrumentVoice, SoundManager } from "@/utils/SoundManager"
 import { ConjunctionType } from "./constants"
-import { getTransport as getToneTransport } from "tone"
+import { getTransport as getToneTransport, getContext as getToneContext } from "tone"
 import * as Tone from "tone"
 import { MusicContext, MusicScale } from "@/utils/music"
+import { clamp } from "@/utils/math"
+import { AudioRange, NormalRange } from "tone/build/esm/core/type/Units"
 
 const major_chord = [0, 4, 7]
 const minor_chord = [0, 3, 7]
@@ -24,15 +26,22 @@ export type StopPlayingMethod = "should_restart_sound_manager" | "release_all"
 export class SyntaxPlayer
 {
     should_continue_play = true
-    tick__setTimeout_ids: number[] = []
+    tick__setTimeout_ids: Set<number> = new Set()
     music_context: MusicContext
     instrument__piano!: InstrumentVoice
     instrument__flute!: InstrumentVoice
 
+    init_finished: Promise<any>
+
     constructor(music_context?: MusicContext)
     {
         this.music_context = music_context ?? new MusicContext()
-        SoundManager.init_finished?.then(() =>
+
+        if (SoundManager.init_finished == null || SoundManager.init_finished == undefined)
+        {
+            throw Error("SoundManager not init-ed. Init that first.")
+        }
+        this.init_finished = SoundManager.init_finished.then(() =>
         {
             this.instrument__piano = SoundManager.createInstrumentVoice({
                 instrument_name: "piano"
@@ -43,10 +52,20 @@ export class SyntaxPlayer
         })
     }
 
-    playMusic(
+    /**
+     * Play the text.
+     * 
+     * Play event pushed to `setTimeout` by `this.tick`.
+     * Text-to-music algorithm done by `getPlayInfoOfOrdinary` and `getNoteOfConjunction`.
+     */
+    async playMusic(
         text_container__id: string = "singing_text__text_container"
     )
     {
+        await this.init_finished
+
+        console.log("playMusic")
+
         const text_container = document.getElementById(text_container__id)
         if (text_container == null) { return }
 
@@ -68,6 +87,7 @@ export class SyntaxPlayer
     {
         this.should_continue_play = false
         for (const id of this.tick__setTimeout_ids) { clearTimeout(id) }
+        this.tick__setTimeout_ids.clear()
 
         switch (method)
         {
@@ -86,7 +106,7 @@ export class SyntaxPlayer
     }
 
     /** Put n more events into the `setTimeout`. */
-    tick(music_context: MusicContext, tree_walker: TreeWalker)
+    private tick(music_context: MusicContext, tree_walker: TreeWalker)
     {
         let next_node
         do
@@ -103,6 +123,7 @@ export class SyntaxPlayer
         // If not a conjunction, cut into words.
         if (span_element.dataset["type"] == null || span_element.dataset["type"] == undefined)
         {
+            /**  */
             let time_offset = 0
             for (const match of span_text.matchAll(/\b\w+\b/g))
             {
@@ -111,28 +132,36 @@ export class SyntaxPlayer
                 if (word.length == 0) { continue }
                 if (!this.should_continue_play) { break }
 
-                const notes_to_play = getNoteOfOrdinary(music_context, word)
-                /** Including interval until next note */
-                const notes_length = getNoteLength(word)
-                const notes_length_in_milliseconds = notes_length.toMilliseconds()
-                const notes_duration_in_milliseconds = notes_length_in_milliseconds * Math.random() * 0.75
+                const {
+                    notes: notes_to_play, notes_length__in_s, notes_duration__in_s,
+                    instrument, pan, velocity
+                } = getPlayInfoOfOrdinary(this, music_context, word)
+                const notes_length__in_ms = notes_length__in_s * 1000
 
-                this.tick__setTimeout_ids.push(window.setTimeout(() =>
+                const setTimeout__id = window.setTimeout(() =>
                 {
-                    this.instrument__piano.triggerAttackRelease(notes_to_play, notes_duration_in_milliseconds)
+                    console.log(({
+                        notes: notes_to_play, notes_length__in_s, notes_duration__in_s,
+                        instrument: instrument.id, pan, velocity
+                    }))
+                    instrument.raw_pan.linearRampTo(pan, 0.1)
+                    instrument.triggerAttackRelease(notes_to_play, notes_duration__in_s, getToneContext().currentTime, velocity)
 
                     let range = new Range()
                     range.setStart(span_element.firstChild!, index)
                     range.setEnd(span_element.firstChild!, index + word.length)
                     CSS.highlights.set("playing", new Highlight(range))
-                }, time_offset + notes_length_in_milliseconds))
 
-                time_offset += notes_length_in_milliseconds
+                    this.tick__setTimeout_ids.delete(setTimeout__id)
+                }, time_offset + notes_length__in_ms)
+                this.tick__setTimeout_ids.add(setTimeout__id)
+
+                time_offset += notes_length__in_ms
             }
 
-            this.tick__setTimeout_ids.push(window.setTimeout(() => this.tick(music_context, tree_walker), time_offset))
+            this.tick__setTimeout_ids.add(window.setTimeout(() => this.tick(music_context, tree_walker), time_offset))
         }
-        else
+        else // If conjunction.
         {
             const phrase = span_text
             const notes_to_play = getNoteOfConjunction(music_context, span_element)
@@ -142,6 +171,7 @@ export class SyntaxPlayer
 
             setTimeout(() =>
             {
+                // For conjuctions, use piano to play chord.
                 this.instrument__piano.triggerAttackRelease(notes_to_play, notes_duration_in_milliseconds)
 
                 let range = new Range()
@@ -150,7 +180,7 @@ export class SyntaxPlayer
                 CSS.highlights.set("playing", new Highlight(range))
             }, notes_length_in_milliseconds)
 
-            this.tick__setTimeout_ids.push(window.setTimeout(() => this.tick(music_context, tree_walker), notes_length_in_milliseconds))
+            this.tick__setTimeout_ids.add(window.setTimeout(() => this.tick(music_context, tree_walker), notes_length_in_milliseconds))
         }
     }
 }
@@ -161,18 +191,94 @@ function getNoteLength(from_word: string)
 }
 
 /**
- * Get a note for non-conjunction words.
+ * Basic play info for triggering instrument voice.
  */
-function getNoteOfOrdinary(music_context: MusicContext, word: string)
+type BasicPlayInfo = {
+    /**
+     * Notes to play.
+     */
+    notes: number[]
+
+    /**
+     * Time occupied by the note from word (including the part after release), in seconds.
+     */
+    notes_length__in_s: number
+
+    /**
+     * The sounding time of the note, in seconds.
+     */
+    notes_duration__in_s: number
+}
+
+/**
+ * The info for playing an odinary word.
+ */
+type OrdinaryPlayInfo = BasicPlayInfo & {
+    /** Either piano or flute */
+    instrument: InstrumentVoice
+
+    /** Panning value. */
+    pan: AudioRange
+
+    /** Strength of playing. */
+    velocity: NormalRange
+}
+
+type ConjunctionPlayInfo = BasicPlayInfo & {
+
+}
+
+/**
+ * A variable to save whether piano is just used for sound generation.
+ */
+let used_piano: boolean = false
+
+/**
+ * Get a note for non-conjunction words.
+ * 
+ * The reference of `syntax_player` is needed to pick instrument.
+ * 
+ * Mapping:
+ * * Word's length -> volume
+ * * Word's length -> pan (3n: left, 3n + 1: middle, 3n + 2: right)
+ */
+function getPlayInfoOfOrdinary(syntax_player: SyntaxPlayer, music_context: MusicContext, word: string)
 {
     const scale = music_context.getScale()
 
-    return word.split(/[vkxqjz]/g)
+    const notes = word.split(/[vkxqjz]/g)
         .map(s => (
             scale[[...s].reduce((previous, current) => previous + current.charCodeAt(0), 0) % (scale.length - 1)]
             + music_context.current_major + midi_c4_note
         ))
         .slice(0, 3)
+    const word_length = word.length
+
+    // Choose instrument to play.
+    const instrument = used_piano
+        ? syntax_player.instrument__flute
+        : syntax_player.instrument__piano
+
+    used_piano = !used_piano
+
+    /** Including interval until next note */
+    const notes_length = getNoteLength(word)
+    const notes_length__in_s = notes_length.toSeconds()
+    const notes_duration__in_s = instrument == syntax_player.instrument__piano
+        ? notes_length__in_s * clamp(0.75, Math.random(), 0.9)
+        : notes_length__in_s * clamp(0.8, Math.random(), 1)
+
+    // Panning. For word length `l`:
+    // (l % 3 - 1) * (l / 70)
+    const pan = clamp(-1, (word_length % 3 - 1) * (word_length / 7), 1)
+
+    // Velocity:
+    const velocity = 1 - Math.max(0, word_length - 4) / 20
+
+    return ({
+        notes, notes_length__in_s, notes_duration__in_s,
+        instrument, pan, velocity
+    }) satisfies OrdinaryPlayInfo
 }
 
 /**
@@ -183,6 +289,9 @@ function getNoteOfConjunction(music_context: MusicContext, span_element: HTMLSpa
     // TODO: Bad algorithm.
     const element_type_in_string = span_element.dataset["type"] ?? "not_a_conjuction"
     const element_type = ConjunctionType[element_type_in_string as keyof typeof ConjunctionType]
+
+    used_piano = true
+
     switch (element_type)
     {
         case ConjunctionType.not_a_conjuction: {

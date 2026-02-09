@@ -13,6 +13,11 @@ const singing_text_overlay__textarea__id = "singing_text_overlay__textarea"
 
 /**
  * Overlay content of the singing text, after clicking singing text facility.
+ * 
+ * The facility used a "mirrored" `div` element (with id `singing_text__text_container`)
+ *  to display the highlighted text.
+ * The changing of the text will be done in `textarea` (with id `singing_text_overlay__textarea`).
+ * Two containers are sync-ed.
  */
 export default function SingingTextOverlay()
 {
@@ -25,8 +30,11 @@ export default function SingingTextOverlay()
     const [is_textarea_focused, setWhetherTextareaFocused] = useState(false)
     const sign_area__ref = useRef<HTMLDivElement>(null)
     const textarea__ref = useRef<HTMLTextAreaElement>(null)
+    const mirrored_text_container__ref = useRef<HTMLDivElement>(null)
     const syntax_player = useRef<SyntaxPlayer>(new SyntaxPlayer(music_context__ref.current))
     const is_playing = useRef(false)
+    /** Prevent `useEffect` to call `syntax_player.current.playMusic()` on the first time. */
+    const is_ready = useRef(false)
 
     /** Any change in text area will cause stop of music. */
     const onTextAreaChange = () =>
@@ -61,27 +69,69 @@ export default function SingingTextOverlay()
             submitText()
         }
     }
+    /**
+     * When the overlay is closed, and moving back to whole playground.
+     */
+    const onFacilityExit = () =>
+    {
+        syntax_player.current.stopPlaying()
+    }
+    /** Keep mirrored text scrolled in sync with the actual textarea. */
+    const syncMirroredScroll = () =>
+    {
+        const textarea = textarea__ref.current
+        const mirrored = mirrored_text_container__ref.current
+        if (!textarea || !mirrored)
+        {
+            return
+        }
+        mirrored.scrollTop = textarea.scrollTop
+        mirrored.scrollLeft = textarea.scrollLeft
+    }
 
-    // On `submitted_text` changed. The play of music is triggered by this.
+    // When the play of the music should be restarted:
     useEffect(() =>
     {
-        syntax_player.current.stopPlaying("release_all")
-        highlightContent()
-        syntax_player.current.playMusic()
-        is_playing.current = true
-    }, [submitted_text, __should_restart_music__bool])
+        if (is_ready.current)
+        {
+            syntax_player.current.stopPlaying("release_all")
+            highlightContent()
+            syntax_player.current.playMusic()
+            is_playing.current = true
+        }
+    }, [__should_restart_music__bool])
+
+    // Init.
+    useEffect(() =>
+    {
+        is_ready.current = true
+        document.addEventListener("facility_exit", onFacilityExit)
+
+        return () =>
+        {
+            document.removeEventListener("facility_exit", onFacilityExit)
+        }
+    }, [])
+
+    // Re-apply scroll sync when mirrored content is (re)rendered.
+    useEffect(() =>
+    {
+        syncMirroredScroll()
+    }, [submitted_text, is_dirty, is_textarea_focused])
 
     return (<div id="singing_text_overlay" className="CenteredOverlayContent">
         <div id="singing_text_overlay__sign_area" ref={sign_area__ref} onClick={onSignAreaClick}>
             <div id="singing_text_overlay__face_of_sign">
                 <textarea id={singing_text_overlay__textarea__id} ref={textarea__ref}
                     onChange={onTextAreaChange}
+                    onScroll={syncMirroredScroll}
                     onFocus={() => setWhetherTextareaFocused(true)}
                     onBlur={() => setWhetherTextareaFocused(false)}
                     className={is_dirty || is_textarea_focused ? "" : "Masked"}
                     defaultValue={belling_the_cat__text} />
                 {!is_dirty &&
                     (<div id="singing_text__text_container"
+                    ref={mirrored_text_container__ref}
                         aria-hidden={true}
                         className={is_textarea_focused ? "Masked" : ""}>
                         {renderTokenisedContent(submitted_text)}
