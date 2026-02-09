@@ -31,6 +31,11 @@ type Param_createInstrumentVoice = {
 
 export type InstrumentVoice = {
     id: string
+    /**
+     * 
+     * @param duration In seconds.
+     * @param velocity Tonejs `velocity`, should be from `0` to `1`.
+     */
     triggerAttackRelease(
         note: string | number | string[] | number[],
         duration?: Time, time?: number,
@@ -38,6 +43,7 @@ export type InstrumentVoice = {
     ): void
     /** Trigger a release to all sounding note. */
     releaseAllNote(): void
+    /** -1 is left, 1 is right. */
     setPan(value: number): void
     setGain(value: number): void
     raw_gain: Gain["gain"]
@@ -293,7 +299,7 @@ export class SoundManager
             current_node.connect(this.master_input)
         }
 
-        const voice_id = `voice_${this.custom_voice_id__counter++}`
+        const voice_id = `${instrument_name}__voice_${this.custom_voice_id__counter++}`
         this.custom_voices.set(voice_id, {
             sampler,
             gain_node,
